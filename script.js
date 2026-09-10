@@ -5,8 +5,8 @@ function go(name){
   if(name !== 'ar') stopAR();
 }
 
-/* ---- Cámara AR ---- */
-let arStream = null;
+/* ---- Cámara AR (MindAR + A-Frame) ---- */
+let arRunning = false;
 
 function setARStatus(msg, isError){
   const el = document.getElementById('ar-status');
@@ -17,53 +17,68 @@ function setARStatus(msg, isError){
   el.classList.toggle('error', !!isError);
 }
 
+function getARSystem(){
+  const scene = document.querySelector('#ar-scene');
+  if(!scene) return null;
+  return scene.systems && scene.systems['mindar-image-system'];
+}
+
 async function toggleAR(){
-  if(arStream){ stopAR(); return; }
+  if(arRunning){ stopAR(); return; }
   await startAR();
 }
 
 async function startAR(){
-  const video = document.getElementById('ar-video');
+  const scene = document.querySelector('#ar-scene');
   const btn = document.getElementById('ar-scan-btn');
-
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-    setARStatus('Tu navegador no soporta acceso a la cámara.', true);
+  if(!scene){
+    setARStatus('No se encontró la escena AR.', true);
     return;
   }
 
   setARStatus('Solicitando acceso a la cámara…');
 
-  try{
-    arStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' } },
-      audio: false
-    });
-    video.srcObject = arStream;
-    await video.play();
-    setARStatus('');
-    if(btn) btn.textContent = 'DETENER CÁMARA';
-  }catch(err){
-    arStream = null;
-    if(err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError'){
-      setARStatus('Permiso de cámara denegado. Habilítalo en la configuración del navegador.', true);
-    }else if(err.name === 'NotFoundError'){
-      setARStatus('No se encontró ninguna cámara en este dispositivo.', true);
-    }else{
-      setARStatus('No se pudo acceder a la cámara: ' + err.message, true);
+  const doStart = async () => {
+    try{
+      const system = getARSystem();
+      if(!system) throw new Error('Sistema MindAR no disponible');
+      await system.start();
+      arRunning = true;
+      setARStatus('Apunta la cámara al logo para ver el modelo 3D');
+      if(btn) btn.textContent = 'DETENER CÁMARA';
+    }catch(err){
+      arRunning = false;
+      if(err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError'){
+        setARStatus('Permiso de cámara denegado. Habilítalo en la configuración del navegador.', true);
+      }else if(err.name === 'NotFoundError'){
+        setARStatus('No se encontró ninguna cámara en este dispositivo.', true);
+      }else{
+        setARStatus('No se pudo iniciar el AR: ' + err.message, true);
+      }
     }
+  };
+
+  if(scene.hasLoaded){
+    await doStart();
+  }else{
+    scene.addEventListener('loaded', doStart, { once: true });
   }
 }
 
 function stopAR(){
-  const video = document.getElementById('ar-video');
   const btn = document.getElementById('ar-scan-btn');
-  if(arStream){
-    arStream.getTracks().forEach(t => t.stop());
-    arStream = null;
-  }
-  if(video) video.srcObject = null;
+  const system = getARSystem();
+  if(system && arRunning) system.stop();
+  arRunning = false;
   if(btn) btn.textContent = 'ESCANEAR OBJETO';
   setARStatus('Toca "Escanear objeto" para activar la cámara');
+}
+
+function setARFilter(el, cls){
+  el.parentElement.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  const canvas = document.querySelector('#ar-scene canvas');
+  if(canvas) canvas.style.filter = filterCss(cls);
 }
 
 function setARFilter(el, cls){
