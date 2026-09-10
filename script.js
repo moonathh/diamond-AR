@@ -537,7 +537,7 @@ function initModelViewer() {
        */
 
       modelRoot.position.x = 0;
-      modelRoot.position.y = -0.35;
+      modelRoot.position.y = -0.38;
       modelRoot.position.z = 0;
 
 
@@ -594,7 +594,7 @@ function initModelViewer() {
     if (modelRoot) {
 
       // Rotar lentamente
-      modelRoot.rotation.y += 0.01;
+     // modelRoot.rotation.y += 0.01;
 
     }
 
