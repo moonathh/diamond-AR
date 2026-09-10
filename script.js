@@ -67,9 +67,11 @@ async function startAR(){
 
 function stopAR(){
   const btn = document.getElementById('ar-scan-btn');
+  const model = document.getElementById('ar-model');
   const system = getARSystem();
   if(system && arRunning) system.stop();
   arRunning = false;
+  if(model) model.setAttribute('visible', 'false');
   if(btn) btn.textContent = 'ESCANEAR OBJETO';
   setARStatus('Toca "Escanear objeto" para activar la cámara');
 }
@@ -105,14 +107,17 @@ function filterCss(cls){
 
 window.addEventListener('DOMContentLoaded', () => {
   const target = document.querySelector('#ar-target');
+  const model = document.querySelector('#ar-model');
   if(target){
     target.addEventListener('targetFound', () => {
       console.log('[MindAR] target encontrado');
       setARStatus('¡Logo detectado!');
+      if(model) model.setAttribute('visible', 'true');
     });
     target.addEventListener('targetLost', () => {
       console.log('[MindAR] target perdido');
       setARStatus('Apunta la cámara al logo para ver el modelo 3D');
+      if(model) model.setAttribute('visible', 'false');
     });
   }
 });
