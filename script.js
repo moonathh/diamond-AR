@@ -540,7 +540,7 @@ function initModelViewer() {
       modelRoot.position.y = -0.38;
       modelRoot.position.z = 0;
 
-      modelRoot.rotation.y = Math.PI / 2;
+      modelRoot.rotation.y = -Math.PI / 2;
 
 
       /* -----------------------------------
