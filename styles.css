@@ -137,7 +137,18 @@
     position:relative; overflow:hidden;
     border:2px solid rgba(79,195,247,0.35);
   }
-  .corner{position:absolute; width:26px; height:26px; border-color:var(--scan); border-style:solid;}
+.ar-video{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; z-index:1; background:transparent;
+}
+.ar-status{
+  position:absolute; left:0; right:0; bottom:0; z-index:2;
+  text-align:center; padding:10px 14px; font-size:12.5px;
+  color:#fff; background:linear-gradient(transparent, rgba(0,0,0,0.65));
+}
+.ar-status.error{ color:#ff8a8a; }
+.ar-status.hidden{ display:none; }
+.corner{position:absolute; width:26px; height:26px; border-color:var(--scan); border-style:solid; z-index:3;}
   .corner.tl{top:14px;left:14px;border-width:3px 0 0 3px;}
   .corner.tr{top:14px;right:14px;border-width:3px 3px 0 0;}
   .corner.bl{bottom:14px;left:14px;border-width:0 0 3px 3px;}

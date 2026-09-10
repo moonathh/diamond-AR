@@ -39,29 +39,32 @@
   </div>
 
   <!-- AR (sin funcionalidad) -->
-  <div class="screen" id="screen-ar">
-    <div class="topbar"><div><div class="eyebrow">Realidad Aumentada</div><h1>Escáner AR</h1></div><div class="badge" onclick="go('home')" style="cursor:pointer;">←</div></div>
-    <div class="viewfinder">
-      <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
-    </div>
-    <button class="btn-primary" style="width:calc(100% - 40px); margin:0 20px 14px;">ESCANEAR OBJETO</button>
-
-    <div class="filter-row">
-      <div class="filter-chip active">Original</div>
-      <div class="filter-chip">Desenfoque</div>
-      <div class="filter-chip">Pixelado</div>
-      <div class="filter-chip">Cámara térmica</div>
-      <div class="filter-chip">Ajuste de color</div>
-      <div class="filter-chip">Pastel</div>
-    </div>
-
-    <div class="ar-controls">
-      <button class="ar-btn">🕺 Animar</button>
-      <button class="ar-btn">🎊 Confeti</button>
-      <button class="ar-btn">📸 Capturar</button>
-      <button class="ar-btn">🖼️ Ver galería</button>
-    </div>
+  <!-- AR -->
+<div class="screen" id="screen-ar">
+  <div class="topbar"><div><div class="eyebrow">Realidad Aumentada</div><h1>Escáner AR</h1></div><div class="badge" onclick="go('home')" style="cursor:pointer;">←</div></div>
+  <div class="viewfinder" id="ar-viewfinder">
+    <video id="ar-video" class="ar-video" autoplay playsinline muted></video>
+    <div class="ar-status" id="ar-status">Toca "Escanear objeto" para activar la cámara</div>
+    <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
   </div>
+  <button class="btn-primary" id="ar-scan-btn" style="width:calc(100% - 40px); margin:0 20px 14px;" onclick="toggleAR()">ESCANEAR OBJETO</button>
+
+  <div class="filter-row">
+    <div class="filter-chip active" onclick="setARFilter(this,'')">Original</div>
+    <div class="filter-chip" onclick="setARFilter(this,'f-blur')">Desenfoque</div>
+    <div class="filter-chip" onclick="setARFilter(this,'f-pixel')">Pixelado</div>
+    <div class="filter-chip" onclick="setARFilter(this,'f-thermal')">Cámara térmica</div>
+    <div class="filter-chip" onclick="setARFilter(this,'f-thermal')">Ajuste de color</div>
+    <div class="filter-chip" onclick="setARFilter(this,'f-pastel')">Pastel</div>
+  </div>
+
+  <div class="ar-controls">
+    <button class="ar-btn">🕺 Animar</button>
+    <button class="ar-btn">🎊 Confeti</button>
+    <button class="ar-btn">📸 Capturar</button>
+    <button class="ar-btn">🖼️ Ver galería</button>
+  </div>
+</div>
 
   <!-- VIDEO -->
   <div class="screen" id="screen-video">
