@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="styles.css">
 <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
 
@@ -41,55 +42,42 @@
   </div>
 
   <!-- AR -->
-<div class="screen" id="screen-ar">
-  <div class="topbar"><div><div class="eyebrow">Realidad Aumentada</div><h1>Escáner AR</h1></div><div class="badge" onclick="go('home')" style="cursor:pointer;">←</div></div>
-  <div class="viewfinder" id="ar-viewfinder">
- <a-scene
-  id="ar-scene"
-  mindar-image="imageTargetSrc: assets/targets.mind; autoStart: false; uiScanning: no; uiLoading: no; uiError: no;"
-  embedded
-  color-space="sRGB"
-  renderer="colorManagement: true"
-  vr-mode-ui="enabled: false"
-  device-orientation-permission-ui="enabled: false">
-  <a-assets>
-    <a-asset-item id="pelota-model" src="assets/pelota.glb"></a-asset-item>
-  </a-assets>
-  <a-light type="ambient" color="#ffffff" intensity="1.5"></a-light>
-  <a-light type="directional" color="#ffffff" intensity="1" position="1 1 1"></a-light>
-  <a-camera position="0 0 0" look-controls="enabled: false">
-    <a-gltf-model
-  id="ar-model"
-  visible="true"
-  rotation="0 0 0"
-  position="0 0 -1"
-  scale="0.35 0.35 0.35"
-  src="#pelota-model">
-</a-gltf-model>
-  </a-camera>
-  <a-entity id="ar-target" mindar-image-target="targetIndex: 0"></a-entity>
-</a-scene>
-  <div class="ar-status" id="ar-status">Toca "Escanear objeto" para activar la cámara</div>
-  <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
-</div>
-  <button class="btn-primary" id="ar-scan-btn" style="width:calc(100% - 40px); margin:0 20px 14px;" onclick="toggleAR()">ESCANEAR OBJETO</button>
+  <div class="screen" id="screen-ar">
+    <div class="topbar"><div><div class="eyebrow">Realidad Aumentada</div><h1>Escáner AR</h1></div><div class="badge" onclick="go('home')" style="cursor:pointer;">←</div></div>
+    <div class="viewfinder" id="ar-viewfinder">
+      <a-scene
+        id="ar-scene"
+        mindar-image="imageTargetSrc: assets/targets.mind; autoStart: false; uiScanning: no; uiLoading: no; uiError: no;"
+        embedded
+        color-space="sRGB"
+        renderer="colorManagement: true"
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false">
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        <a-entity id="ar-target" mindar-image-target="targetIndex: 0"></a-entity>
+      </a-scene>
+      <canvas id="ar-model-canvas" class="ar-model-canvas"></canvas>
+      <div class="ar-status" id="ar-status">Toca "Escanear objeto" para activar la cámara</div>
+      <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+    </div>
+    <button class="btn-primary" id="ar-scan-btn" style="width:calc(100% - 40px); margin:0 20px 14px;" onclick="toggleAR()">ESCANEAR OBJETO</button>
 
-  <div class="filter-row">
-    <div class="filter-chip active" onclick="setARFilter(this,'')">Original</div>
-    <div class="filter-chip" onclick="setARFilter(this,'f-blur')">Desenfoque</div>
-    <div class="filter-chip" onclick="setARFilter(this,'f-pixel')">Pixelado</div>
-    <div class="filter-chip" onclick="setARFilter(this,'f-thermal')">Cámara térmica</div>
-    <div class="filter-chip" onclick="setARFilter(this,'f-thermal')">Ajuste de color</div>
-    <div class="filter-chip" onclick="setARFilter(this,'f-pastel')">Pastel</div>
-  </div>
+    <div class="filter-row">
+      <div class="filter-chip active" onclick="setARFilter(this,'')">Original</div>
+      <div class="filter-chip" onclick="setARFilter(this,'f-blur')">Desenfoque</div>
+      <div class="filter-chip" onclick="setARFilter(this,'f-pixel')">Pixelado</div>
+      <div class="filter-chip" onclick="setARFilter(this,'f-thermal')">Cámara térmica</div>
+      <div class="filter-chip" onclick="setARFilter(this,'f-thermal')">Ajuste de color</div>
+      <div class="filter-chip" onclick="setARFilter(this,'f-pastel')">Pastel</div>
+    </div>
 
-  <div class="ar-controls">
-    <button class="ar-btn">🕺 Animar</button>
-    <button class="ar-btn">🎊 Confeti</button>
-    <button class="ar-btn">📸 Capturar</button>
-    <button class="ar-btn">🖼️ Ver galería</button>
+    <div class="ar-controls">
+      <button class="ar-btn">🕺 Animar</button>
+      <button class="ar-btn">🎊 Confeti</button>
+      <button class="ar-btn">📸 Capturar</button>
+      <button class="ar-btn">🖼️ Ver galería</button>
+    </div>
   </div>
-</div>
 
   <!-- VIDEO -->
   <div class="screen" id="screen-video">
