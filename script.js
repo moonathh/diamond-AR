@@ -537,7 +537,7 @@ function initModelViewer() {
        */
 
       modelRoot.position.x = 0;
-      modelRoot.position.y = 0;
+      modelRoot.position.y = -0.35;
       modelRoot.position.z = 0;
 
 
