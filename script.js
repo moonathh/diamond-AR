@@ -102,3 +102,17 @@ function filterCss(cls){
     default: return 'none';
   }
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+  const target = document.querySelector('#ar-target');
+  if(target){
+    target.addEventListener('targetFound', () => {
+      console.log('[MindAR] target encontrado');
+      setARStatus('¡Logo detectado!');
+    });
+    target.addEventListener('targetLost', () => {
+      console.log('[MindAR] target perdido');
+      setARStatus('Apunta la cámara al logo para ver el modelo 3D');
+    });
+  }
+});
