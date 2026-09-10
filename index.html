@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Diamond AR — Fan Experience MLB</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div>
+<div class="phone">
+  <div class="pinstripes"></div>
+
+  <!-- HOME -->
+  <div class="screen active" id="screen-home">
+    <div class="topbar">
+      <div>
+        <div class="eyebrow">MLB · Liga Nacional</div>
+        <h1>Diamond AR</h1>
+      </div>
+      <div class="badge">⚾</div>
+    </div>
+    <div class="hero">
+      <button class="btn-primary" onclick="go('ar')">Escanear ahora</button>
+    </div>
+    <div class="section-title">Explorar</div>
+    <div class="grid-menu">
+      <div class="menu-card" onclick="go('video')"><span class="ic">🎬</span><div class="label">Video</div></div>
+      <div class="menu-card" onclick="go('stats')"><span class="ic">📊</span><div class="label">Estadísticas</div></div>
+      <div class="menu-card" onclick="go('trivia')"><span class="ic">❓</span><div class="label">Trivia</div></div>
+      <div class="menu-card" onclick="go('game')"><span class="ic">🎡</span><div class="label">Ruleta de Premios</div></div>
+      <div class="menu-card" onclick="go('history')"><span class="ic">📜</span><div class="label">Historia</div></div>
+    </div>
+    <div class="section-title">Tu galería</div>
+    <div class="grid-menu" style="grid-template-columns:1fr;">
+      <div class="menu-card" onclick="go('gallery')"><span class="ic">🖼️</span><div class="label">Galería guardada</div><div class="sub">0 capturas</div></div>
+    </div>
+  </div>
+
+  <!-- AR (sin funcionalidad) -->
+  <div class="screen" id="screen-ar">
+    <div class="topbar"><div><div class="eyebrow">Realidad Aumentada</div><h1>Escáner AR</h1></div><div class="badge" onclick="go('home')" style="cursor:pointer;">←</div></div>
+    <div class="viewfinder">
+      <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+    </div>
+    <button class="btn-primary" style="width:calc(100% - 40px); margin:0 20px 14px;">ESCANEAR OBJETO</button>
+
+    <div class="filter-row">
+      <div class="filter-chip active">Original</div>
+      <div class="filter-chip">Desenfoque</div>
+      <div class="filter-chip">Pixelado</div>
+      <div class="filter-chip">Cámara térmica</div>
+      <div class="filter-chip">Ajuste de color</div>
+      <div class="filter-chip">Pastel</div>
+    </div>
+
+    <div class="ar-controls">
+      <button class="ar-btn">🕺 Animar</button>
+      <button class="ar-btn">🎊 Confeti</button>
+      <button class="ar-btn">📸 Capturar</button>
+      <button class="ar-btn">🖼️ Ver galería</button>
+    </div>
+  </div>
+
+  <!-- VIDEO -->
+  <div class="screen" id="screen-video">
+    <div class="topbar"><div><div class="eyebrow">Contenido</div><h1>Videos</h1></div><div class="badge" onclick="go('home')" style="cursor:pointer;">←</div></div>
+    <div class="filter-row">
+      <div class="filter-chip active" onclick="setVFilter(this,'')">Original</div>
+      <div class="filter-chip" onclick="setVFilter(this,'f-blur')">Desenfoque</div>
+      <div class="filter-chip" onclick="setVFilter(this,'f-pixel')">Pixelado</div>
+      <div class="filter-chip" onclick="setVFilter(this,'f-thermal')">Térmica</div>
+      <div class="filter-chip" onclick="setVFilter(this,'f-pastel')">Pastel</div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="screen" id="screen-stats">
+    <div class="topbar"><div><div class="eyebrow">En tiempo real</div><h1>Estadísticas</h1></div><div class="badge" onclick="go('home')" style="cursor:pointer;">←</div></div>
+  </div>
+
+  <!-- TRIVIA (sin funcionalidad) -->
+  <div class="screen" id="screen-trivia">
+    <div class="topbar"><div><div class="eyebrow">Pon a prueba tu conocimiento</div><h1>Trivia MLB</h1></div><div class="badge" onclick="go('home')" style="cursor:pointer;">←</div></div>
+
+    <div class="trivia-ticket-box">
+      <div class="tt-left">
+        <div class="tt-ic">🎟️</div>
+        <div>
+          <div class="tt-count">0</div>
+          <div class="tt-label">Tickets ganados</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trivia-card">
+      <div class="trivia-q-num">Pregunta 1</div>
+      <div class="trivia-q-text">¿?</div>
+      <div class="trivia-options">
+        <div class="trivia-option"></div>
+        <div class="trivia-option"></div>
+        <div class="trivia-option"></div>
+        <div class="trivia-option"></div>
+      </div>
+    </div>
+
+    <div class="trivia-card">
+      <div class="trivia-q-num">Pregunta 2</div>
+      <div class="trivia-q-text">¿?</div>
+      <div class="trivia-options">
+        <div class="trivia-option"></div>
+        <div class="trivia-option"></div>
+        <div class="trivia-option"></div>
+        <div class="trivia-option"></div>
+      </div>
+    </div>
+
+    <div class="trivia-card">
+      <div class="trivia-q-num">Pregunta 3</div>
+      <div class="trivia-q-text">¿?</div>
+      <div class="trivia-options">
+        <div class="trivia-option"></div>
+        <div class="trivia-option"></div>
+        <div class="trivia-option"></div>
+        <div class="trivia-option"></div>
+      </div>
+    </div>
+
+    <div class="trivia-card">
+      <div class="trivia-q-num">Pregunta 4</div>
+      <div class="trivia-q-text">¿?</div>
+      <div class="trivia-options">
+        <div class="trivia-option"></div>
+        <div class="trivia-option"></div>
+        <div class="trivia-option"></div>
+        <div class="trivia-option"></div>
+      </div>
+    </div>
+
+    <div class="trivia-card">
+      <div class="trivia-q-num">Pregunta 5</div>
+      <div class="trivia-q-text">¿?</div>
+      <div class="trivia-options">
+        <div class="trivia-option"></div>
+        <div class="trivia-option"></div>
+        <div class="trivia-option"></div>
+        <div class="trivia-option"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME (sin funcionalidad) -->
+  <div class="screen" id="screen-game">
+    <div class="topbar"><div><div class="eyebrow">Juego</div><h1>Participa por mercancía del equipo</h1></div><div class="badge" onclick="go('home')" style="cursor:pointer;">←</div></div>
+    <div class="ticket-box">
+      <div class="ticket-count">0</div>
+      <div class="ticket-label">Tickets disponibles</div>
+    </div>
+    <div class="section-title">Ruleta de premios</div>
+    <div class="wheel-wrap">
+      <div style="position:relative;">
+        <div class="wheel-pointer"></div>
+        <div class="wheel"></div>
+      </div>
+    </div>
+    <button class="btn-primary" style="width:calc(100% - 40px); margin:8px 20px 4px;">Girar ruleta (1 ticket)</button>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="screen" id="screen-history">
+    <div class="topbar"><div><div class="eyebrow">Legado</div><h1>Historia</h1></div><div class="badge" onclick="go('home')" style="cursor:pointer;">←</div></div>
+  </div>
+
+  <!-- GALLERY -->
+  <div class="screen" id="screen-gallery">
+    <div class="topbar"><div><div class="eyebrow">Capturas Guardadas</div><h1>Mi Galería</h1></div><div class="badge" onclick="go('home')" style="cursor:pointer;">←</div></div>
+    <div class="gal-empty">Aún no tienes capturas.</div>
+  </div>
+
+  <!-- NAV -->
+  <div class="navbar">
+    <button class="nav-btn active" data-s="home" onclick="go('home')"><span class="ic">🏠</span>Inicio</button>
+    <button class="nav-btn" data-s="ar" onclick="go('ar')"><span class="ic">📷</span>AR</button>
+    <button class="nav-btn" data-s="video" onclick="go('video')"><span class="ic">🎬</span>Video</button>
+    <button class="nav-btn" data-s="stats" onclick="go('stats')"><span class="ic">📊</span>Stats</button>
+    <button class="nav-btn" data-s="trivia" onclick="go('trivia')"><span class="ic">❓</span>Trivia</button>
+    <button class="nav-btn" data-s="game" onclick="go('game')"><span class="ic">🎡</span>Juego</button>
+    <button class="nav-btn" data-s="history" onclick="go('history')"><span class="ic">📜</span>Historia</button>
+    <button class="nav-btn" data-s="gallery" onclick="go('gallery')"><span class="ic">🖼️</span>Galería</button>
+  </div>
+</div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
