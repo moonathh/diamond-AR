@@ -333,18 +333,121 @@
     .caption{ display:none; }
   }
 
-  #ar-viewfinder{
-  position:relative;
-  z-index:0;
+  /* =========================================================
+   VISOR AR
+   ========================================================= */
+
+#ar-viewfinder {
+  position: relative;
+  z-index: 0;
+  overflow: hidden;
 }
-#ar-viewfinder video{
-  position:absolute !important;
-  inset:0 !important;
-  width:100% !important;
-  height:100% !important;
-  object-fit:cover !important;
-  z-index:1 !important;
+
+
+/* ---------------------------------------------------------
+   VIDEO DE LA CÁMARA
+   --------------------------------------------------------- */
+
+#ar-viewfinder video {
+  position: absolute !important;
+  inset: 0 !important;
+
+  width: 100% !important;
+  height: 100% !important;
+
+  object-fit: cover !important;
+
+  z-index: 1 !important;
 }
-#ar-scene canvas{
-  z-index:2 !important;
+
+
+/* ---------------------------------------------------------
+   CANVAS DE MINDAR / A-FRAME
+   --------------------------------------------------------- */
+
+#ar-scene {
+  position: absolute !important;
+  inset: 0 !important;
+
+  width: 100% !important;
+  height: 100% !important;
+
+  z-index: 2 !important;
+}
+
+#ar-scene canvas {
+  position: absolute !important;
+  inset: 0 !important;
+
+  width: 100% !important;
+  height: 100% !important;
+
+  z-index: 2 !important;
+}
+
+
+/* ---------------------------------------------------------
+   CANVAS THREE.JS - MODELO 3D
+   --------------------------------------------------------- */
+
+#ar-model-canvas {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+
+  width: 100% !important;
+  height: 100% !important;
+
+  display: none;
+
+  pointer-events: none;
+
+  z-index: 3 !important;
+
+  background: transparent !important;
+}
+
+#ar-model-canvas.visible {
+  display: block !important;
+}
+
+
+/* ---------------------------------------------------------
+   ELEMENTOS DEL VISOR
+   --------------------------------------------------------- */
+
+.ar-status {
+  z-index: 5 !important;
+}
+
+.corner {
+  z-index: 4 !important;
+}
+
+/* =========================================================
+   CANVAS DEL MODELO 3D
+   Se muestra centrado dentro del visor de cámara
+   ========================================================= */
+
+#ar-model-canvas {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+
+  width: 100% !important;
+  height: 100% !important;
+
+  display: none;
+
+  pointer-events: none;
+
+  /* Por encima del video y de A-Frame */
+  z-index: 3 !important;
+
+  background: transparent !important;
+}
+
+/* Cuando se detecta el logo */
+#ar-model-canvas.visible {
+  display: block !important;
 }
