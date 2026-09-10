@@ -131,29 +131,38 @@ function initModelViewer(){
   resize();
 
   const loader = new THREE.GLTFLoader();
-  loader.load(
-    'assets/pelota.glb',
-    (gltf) => {
-      modelRoot = gltf.scene;
 
-      const box = new THREE.Box3().setFromObject(modelRoot);
-      const size = new THREE.Vector3();
-      box.getSize(size);
-      const center = new THREE.Vector3();
-      box.getCenter(center);
-      const maxDim = Math.max(size.x, size.y, size.z) || 1;
-      const targetSize = 1.4;
-      const s = targetSize / maxDim;
+// Configurar decodificador Draco
+const dracoLoader = new THREE.DRACOLoader();
+dracoLoader.setDecoderPath(
+  'https://www.gstatic.com/draco/versioned/decoders/1.5.7/'
+);
 
-      modelRoot.position.sub(center);
-      modelRoot.scale.setScalar(s);
+loader.setDRACOLoader(dracoLoader);
 
-      scene.add(modelRoot);
-      console.log('[Visor3D] modelo .glb cargado correctamente');
-    },
-    undefined,
-    (err) => console.error('[Visor3D] error cargando el modelo .glb:', err)
-  );
+loader.load(
+  'assets/pelota.glb',
+  (gltf) => {
+    modelRoot = gltf.scene;
+
+    const box = new THREE.Box3().setFromObject(modelRoot);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    const maxDim = Math.max(size.x, size.y, size.z) || 1;
+    const targetSize = 1.4;
+    const s = targetSize / maxDim;
+
+    modelRoot.position.sub(center);
+    modelRoot.scale.setScalar(s);
+
+    scene.add(modelRoot);
+    console.log('[Visor3D] modelo .glb cargado correctamente');
+  },
+  undefined,
+  (err) => console.error('[Visor3D] error cargando el modelo .glb:', err)
+);
 
   function animate(){
     requestAnimationFrame(animate);
