@@ -332,3 +332,19 @@
     }
     .caption{ display:none; }
   }
+
+  #ar-viewfinder{
+  position:relative;
+  z-index:0;
+}
+#ar-viewfinder video{
+  position:absolute !important;
+  inset:0 !important;
+  width:100% !important;
+  height:100% !important;
+  object-fit:cover !important;
+  z-index:1 !important;
+}
+#ar-scene canvas{
+  z-index:2 !important;
+}
