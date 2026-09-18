@@ -596,7 +596,7 @@ function initModelViewer() {
     if (modelRoot) {
 
       // Rotar lentamente
-     // modelRoot.rotation.y += 0.01;
+      modelRoot.rotation.y += 0.01;
 
     }
 
