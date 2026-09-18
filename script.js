@@ -588,7 +588,7 @@ function initModelViewer() {
      ANIMACIÓN
      ------------------------------------------------------- */
 
-     function animate() {
+  function animate() {
 
     requestAnimationFrame(
       animate
@@ -786,3 +786,86 @@ window.addEventListener(
 
   }
 );
+
+/* =========================================================
+   PAUSAR / REANUDAR ANIMACIÓN DEL MODELO
+   ========================================================= */
+
+function toggleModelAnimation(btnEl) {
+
+  modelAnimationPaused = !modelAnimationPaused;
+
+  if (btnEl) {
+    btnEl.textContent = modelAnimationPaused
+      ? '▶️ Reanudar'
+      : '⏸️ Pausar';
+  }
+
+  console.log(
+    '[Visor3D] animación',
+    modelAnimationPaused ? 'pausada' : 'reanudada'
+  );
+}
+
+
+/* =========================================================
+   CONFETI SOBRE EL RECUADRO DEL MODELO
+   ========================================================= */
+
+function burstConfetti() {
+
+  const canvas = document.getElementById('ar-confetti-canvas');
+  const container = document.getElementById('ar-viewfinder');
+
+  if (!canvas || !container) return;
+
+  canvas.width = container.clientWidth;
+  canvas.height = container.clientHeight;
+
+  const ctx = canvas.getContext('2d');
+
+  const colors = ['#C8352E', '#F2C94C', '#FFFFFF', '#6FCF97', '#4FC3F7'];
+
+  const particles = Array.from({ length: 70 }, () => ({
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    vx: (Math.random() - 0.5) * 9,
+    vy: (Math.random() - 1.4) * 9,
+    size: Math.random() * 5 + 3,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    rot: Math.random() * 360,
+    vrot: (Math.random() - 0.5) * 12
+  }));
+
+  let frame = 0;
+
+  function tick() {
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    particles.forEach((p) => {
+
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.28;
+      p.rot += p.vrot;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rot * Math.PI) / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+      ctx.restore();
+    });
+
+    frame++;
+
+    if (frame < 75) {
+      requestAnimationFrame(tick);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  tick();
+}
