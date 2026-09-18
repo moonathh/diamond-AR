@@ -232,6 +232,7 @@ function filterCss(cls) {
    ========================================================= */
 
 let modelViewer = null;
+let modelAnimationPaused = false;
 
 function initModelViewer() {
 
@@ -587,15 +588,15 @@ function initModelViewer() {
      ANIMACIÓN
      ------------------------------------------------------- */
 
-  function animate() {
+     function animate() {
 
     requestAnimationFrame(
       animate
     );
 
-    if (modelRoot) {
+    if (modelRoot && !modelAnimationPaused) {
 
-      // Rotar lentamente
+      // Rotar lentamente (solo si no está pausado)
       modelRoot.rotation.y += 0.01;
 
     }
