@@ -286,7 +286,8 @@ function initModelViewer() {
   const renderer = new THREE.WebGLRenderer({
     canvas: canvas,
     alpha: true,
-    antialias: true
+    antialias: true,
+    preserveDrawingBuffer: true
   });
 
   renderer.setPixelRatio(
@@ -869,3 +870,226 @@ function burstConfetti() {
 
   tick();
 }
+
+
+/* =========================================================
+   CAPTURA DE FOTO (cámara + modelo 3D + filtro activo)
+   ========================================================= */
+
+function captureAR() {
+
+  if (!arRunning) {
+    setARStatus('Activa la cámara antes de capturar.', true);
+    return;
+  }
+
+  const videoCanvas = document.querySelector('#ar-scene canvas');
+  const modelCanvas = document.getElementById('ar-model-canvas');
+  const viewfinder = document.getElementById('ar-viewfinder');
+
+  if (!videoCanvas || !viewfinder) {
+    setARStatus('No se pudo capturar la imagen.', true);
+    return;
+  }
+
+  const width = viewfinder.clientWidth;
+  const height = viewfinder.clientHeight;
+
+  const out = document.createElement('canvas');
+  out.width = width;
+  out.height = height;
+
+  const ctx = out.getContext('2d');
+
+  // El filtro activo (CSS) se re-aplica sobre el canvas final
+  const activeFilter = videoCanvas.style.filter || 'none';
+
+  try {
+
+    // 1. Fondo: feed de la cámara (dibujado por MindAR/A-Frame)
+    ctx.filter = activeFilter;
+    ctx.drawImage(videoCanvas, 0, 0, width, height);
+
+    // 2. Encima: el modelo 3D, solo si está visible en este momento
+    if (modelCanvas && modelCanvas.classList.contains('visible')) {
+      ctx.filter = activeFilter;
+      ctx.drawImage(modelCanvas, 0, 0, width, height);
+    }
+
+    ctx.filter = 'none';
+
+    const dataUrl = out.toDataURL('image/png');
+
+    saveCapture(dataUrl);
+    flashCaptureEffect();
+
+    setARStatus('¡Captura guardada en tu galería!');
+
+  } catch (err) {
+
+    // Esto ocurre típicamente por un canvas "contaminado" (tainted)
+    // si el feed de cámara o el modelo cargan recursos sin CORS habilitado.
+    console.error('[Captura] Error al generar la imagen:', err);
+
+    setARStatus(
+      'No se pudo guardar la captura (error de seguridad del navegador).',
+      true
+    );
+  }
+}
+
+function flashCaptureEffect() {
+
+  const vf = document.getElementById('ar-viewfinder');
+
+  if (!vf) return;
+
+  const flash = document.createElement('div');
+
+  flash.style.position = 'absolute';
+  flash.style.inset = '0';
+  flash.style.background = '#ffffff';
+  flash.style.opacity = '0.85';
+  flash.style.zIndex = '2000';
+  flash.style.pointerEvents = 'none';
+  flash.style.transition = 'opacity 0.35s ease';
+
+  vf.appendChild(flash);
+
+  requestAnimationFrame(() => {
+    flash.style.opacity = '0';
+  });
+
+  setTimeout(() => flash.remove(), 400);
+}
+
+
+/* =========================================================
+   GALERÍA (persistida en localStorage)
+   ========================================================= */
+
+const GALLERY_KEY = 'diamondar_gallery';
+
+function loadGallery() {
+
+  try {
+    return JSON.parse(localStorage.getItem(GALLERY_KEY)) || [];
+  } catch (err) {
+    console.warn('[Galería] No se pudo leer el almacenamiento:', err);
+    return [];
+  }
+}
+
+function saveCapture(dataUrl) {
+
+  const gallery = loadGallery();
+
+  gallery.unshift({
+    img: dataUrl,
+    ts: Date.now()
+  });
+
+  try {
+    localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
+  } catch (err) {
+    // Almacenamiento lleno u otro error: seguimos mostrando la captura
+    // en memoria para esta sesión aunque no se persista.
+    console.warn('[Galería] No se pudo guardar en localStorage:', err);
+  }
+
+  renderGallery();
+  updateGalleryCount();
+}
+
+function deleteCapture(index) {
+
+  const gallery = loadGallery();
+
+  gallery.splice(index, 1);
+
+  try {
+    localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
+  } catch (err) {
+    console.warn('[Galería] No se pudo actualizar el almacenamiento:', err);
+  }
+
+  renderGallery();
+  updateGalleryCount();
+}
+
+function updateGalleryCount() {
+
+  const count = loadGallery().length;
+
+  const sub = document.querySelector('#screen-home .menu-card .sub');
+
+  if (sub) {
+    sub.textContent = count + (count === 1 ? ' captura' : ' capturas');
+  }
+}
+
+function renderGallery() {
+
+  const screen = document.getElementById('screen-gallery');
+
+  if (!screen) return;
+
+  const gallery = loadGallery();
+
+  let grid = screen.querySelector('.gal-grid');
+  const empty = screen.querySelector('.gal-empty');
+
+  if (gallery.length === 0) {
+
+    if (grid) grid.remove();
+    if (empty) empty.style.display = '';
+
+    return;
+  }
+
+  if (empty) empty.style.display = 'none';
+
+  if (!grid) {
+    grid = document.createElement('div');
+    grid.className = 'gal-grid';
+    screen.appendChild(grid);
+  }
+
+  grid.innerHTML = '';
+
+  gallery.forEach((item, i) => {
+
+    const cell = document.createElement('div');
+    cell.className = 'gal-cell';
+
+    const img = document.createElement('img');
+    img.src = item.img;
+    img.alt = 'Captura AR';
+
+    const del = document.createElement('button');
+    del.className = 'gal-del';
+    del.textContent = '✕';
+    del.setAttribute('aria-label', 'Eliminar captura');
+    del.onclick = (e) => {
+      e.stopPropagation();
+      deleteCapture(i);
+    };
+
+    const dl = document.createElement('a');
+    dl.className = 'gal-dl';
+    dl.textContent = '⬇︎';
+    dl.href = item.img;
+    dl.download = 'diamondar-captura-' + item.ts + '.png';
+    dl.setAttribute('aria-label', 'Descargar captura');
+
+    cell.appendChild(img);
+    cell.appendChild(del);
+    cell.appendChild(dl);
+    grid.appendChild(cell);
+  });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  renderGallery();
+  updateGalleryCount();
+});

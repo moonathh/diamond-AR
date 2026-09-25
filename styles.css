@@ -451,3 +451,64 @@
 #ar-model-canvas.visible {
   display: block !important;
 }
+
+/* ============================================================
+   Agrega este bloque a tu styles.css existente.
+   Estiliza la grilla de capturas dentro de #screen-gallery.
+   ============================================================ */
+
+.gal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 4px 20px 20px;
+}
+
+.gal-cell {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.gal-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.gal-del,
+.gal-dl {
+  position: absolute;
+  top: 6px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 12px;
+  line-height: 26px;
+  text-align: center;
+  cursor: pointer;
+  text-decoration: none;
+  backdrop-filter: blur(2px);
+}
+
+.gal-del {
+  right: 6px;
+}
+
+.gal-dl {
+  left: 6px;
+}
+
+.gal-empty {
+  opacity: 0.7;
+  text-align: center;
+  padding: 40px 20px;
+  font-size: 14px;
+}
