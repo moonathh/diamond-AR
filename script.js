@@ -15,6 +15,11 @@ function go(name) {
 
   if (name !== 'ar') {
     stopAR();
+  } else {
+    // Al volver a entrar a la pantalla AR, el viewfinder puede
+    // haber cambiado de tamaño (o recién hacerse visible), así que
+    // reajustamos el canvas de A-Frame en el siguiente frame.
+    requestAnimationFrame(resizeARScene);
   }
 }
 
@@ -46,6 +51,34 @@ function getARSystem() {
 
   return scene.systems &&
          scene.systems['mindar-image-system'];
+}
+
+/*
+ * Fuerza a A-Frame (y al visor 3D) a recalcular el tamaño
+ * de sus canvas contra el tamaño real del viewfinder.
+ *
+ * Esto es necesario porque cambiar de pantalla solo alterna
+ * una clase CSS (.active) — no dispara un evento "resize" de
+ * la ventana, que es lo único que A-Frame escucha por defecto
+ * para reajustar el canvas. Sin esto, el canvas puede quedarse
+ * en 0x0 hasta que ocurra un resize real (por ejemplo, al abrir
+ * el inspector del navegador), lo que rompe drawImage() al capturar.
+ */
+function resizeARScene() {
+
+  const scene = document.querySelector('#ar-scene');
+
+  if (scene && typeof scene.resize === 'function') {
+    try {
+      scene.resize();
+    } catch (err) {
+      console.warn('[MindAR] No se pudo redimensionar la escena:', err);
+    }
+  }
+
+  if (modelViewer && typeof modelViewer.resize === 'function') {
+    modelViewer.resize();
+  }
 }
 
 async function toggleAR() {
@@ -86,6 +119,13 @@ async function startAR() {
       if (btn) {
         btn.textContent = 'DETENER CÁMARA';
       }
+
+      // El canvas de A-Frame suele arrancar con el tamaño equivocado
+      // (o incluso 0x0) hasta que ocurre un resize real de la ventana.
+      // Lo forzamos aquí, y una vez más un instante después por si el
+      // stream de video tarda un poco en estabilizar sus dimensiones.
+      requestAnimationFrame(resizeARScene);
+      setTimeout(resizeARScene, 300);
 
     } catch (err) {
 
@@ -876,14 +916,14 @@ function burstConfetti() {
    CAPTURA DE FOTO (cámara + modelo 3D + filtro activo)
    ========================================================= */
 
-function captureAR() {
+async function captureAR() {
 
   if (!arRunning) {
     setARStatus('Activa la cámara antes de capturar.', true);
     return;
   }
 
-  const videoCanvas = document.querySelector('#ar-scene canvas');
+  let videoCanvas = document.querySelector('#ar-scene canvas');
   const modelCanvas = document.getElementById('ar-model-canvas');
   const confettiCanvas = document.getElementById('ar-confetti-canvas');
   const viewfinder = document.getElementById('ar-viewfinder');
@@ -891,6 +931,27 @@ function captureAR() {
   if (!videoCanvas || !viewfinder) {
     setARStatus('No se pudo capturar la imagen.', true);
     return;
+  }
+
+  // Salvaguarda: si el canvas de la cámara todavía está en 0x0
+  // (puede pasar justo al entrar a AR, antes de un resize real),
+  // forzamos el ajuste de tamaño y esperamos un frame antes de
+  // intentar de nuevo, en vez de fallar directamente.
+  if (videoCanvas.width === 0 || videoCanvas.height === 0) {
+
+    resizeARScene();
+
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    videoCanvas = document.querySelector('#ar-scene canvas');
+
+    if (!videoCanvas || videoCanvas.width === 0 || videoCanvas.height === 0) {
+      setARStatus(
+        'La cámara aún se está ajustando. Espera un segundo e intenta de nuevo.',
+        true
+      );
+      return;
+    }
   }
 
   const width = viewfinder.clientWidth;
