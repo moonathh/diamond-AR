@@ -885,6 +885,7 @@ function captureAR() {
 
   const videoCanvas = document.querySelector('#ar-scene canvas');
   const modelCanvas = document.getElementById('ar-model-canvas');
+  const confettiCanvas = document.getElementById('ar-confetti-canvas');
   const viewfinder = document.getElementById('ar-viewfinder');
 
   if (!videoCanvas || !viewfinder) {
@@ -914,6 +915,13 @@ function captureAR() {
     if (modelCanvas && modelCanvas.classList.contains('visible')) {
       ctx.filter = activeFilter;
       ctx.drawImage(modelCanvas, 0, 0, width, height);
+    }
+
+    // 3. Encima de todo: el confeti (si hay una animación en curso).
+    //    No lleva el filtro aplicado, para que sus colores no se alteren.
+    if (confettiCanvas && confettiCanvas.width > 0 && confettiCanvas.height > 0) {
+      ctx.filter = 'none';
+      ctx.drawImage(confettiCanvas, 0, 0, width, height);
     }
 
     ctx.filter = 'none';
