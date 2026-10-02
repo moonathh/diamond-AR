@@ -5,63 +5,71 @@
    escaneado. Las pantallas (Historia, Video, Stats, Galería)
    NO tienen texto fijo: lo leen de aquí en tiempo real.
 
-   Para agregar un equipo nuevo:
-   1. Copia el bloque "dodgers" completo.
-   2. Cambia la llave ('dodgers' -> 'giants', etc.) y los datos.
-   3. Agrega su id en TEAM_BY_TARGET_INDEX en el índice que le
-      corresponda dentro de tu nuevo targets.mind.
+   Para editar el contenido de un equipo: busca su "id" en
+   TEAM_LIST y reemplaza los textos placeholder. No necesitas
+   tocar nada más abajo (TEAMS_DATA se genera solo).
    ========================================================= */
 
-const TEAMS_DATA = {
+const TEAM_LIST = [
+  { id: 'dodgers',   nombre: 'Los Angeles Dodgers',      corto: 'Dodgers',   colorPrimario: '#005A9C', colorAcento: '#EF3E42', icono: '⚾', modelo: 'assets/pelota.glb' },
+  { id: 'braves',    nombre: 'Atlanta Braves',           corto: 'Braves',    colorPrimario: '#CE1141', colorAcento: '#13274F', icono: '⚾' },
+  { id: 'marlins',   nombre: 'Miami Marlins',            corto: 'Marlins',   colorPrimario: '#00A3E0', colorAcento: '#EF3340', icono: '⚾' },
+  { id: 'mets',      nombre: 'New York Mets',            corto: 'Mets',      colorPrimario: '#002D72', colorAcento: '#FF5910', icono: '⚾' },
+  { id: 'phillies',  nombre: 'Philadelphia Phillies',    corto: 'Phillies',  colorPrimario: '#E81828', colorAcento: '#002D72', icono: '⚾' },
+  { id: 'nationals', nombre: 'Washington Nationals',     corto: 'Nationals', colorPrimario: '#AB0003', colorAcento: '#14225A', icono: '⚾' },
+  { id: 'cubs',      nombre: 'Chicago Cubs',             corto: 'Cubs',      colorPrimario: '#0E3386', colorAcento: '#CC3433', icono: '⚾' },
+  { id: 'reds',      nombre: 'Cincinnati Reds',          corto: 'Reds',      colorPrimario: '#C6011F', colorAcento: '#000000', icono: '⚾' },
+  { id: 'brewers',   nombre: 'Milwaukee Brewers',        corto: 'Brewers',   colorPrimario: '#12284B', colorAcento: '#FFC52F', icono: '⚾' },
+  { id: 'pirates',   nombre: 'Pittsburgh Pirates',       corto: 'Pirates',   colorPrimario: '#FDB827', colorAcento: '#27251F', icono: '⚾' },
+  { id: 'cardinals', nombre: 'St. Louis Cardinals',      corto: 'Cardinals', colorPrimario: '#C41E3A', colorAcento: '#0C2340', icono: '⚾' },
+  { id: 'dbacks',    nombre: 'Arizona Diamondbacks',     corto: 'D-backs',   colorPrimario: '#A71930', colorAcento: '#000000', icono: '⚾' },
+  { id: 'rockies',   nombre: 'Colorado Rockies',         corto: 'Rockies',   colorPrimario: '#333366', colorAcento: '#C4CED4', icono: '⚾' },
+  { id: 'padres',    nombre: 'San Diego Padres',         corto: 'Padres',    colorPrimario: '#2F241D', colorAcento: '#FFC425', icono: '⚾' },
+  { id: 'giants',    nombre: 'San Francisco Giants',     corto: 'Giants',    colorPrimario: '#FD5A1E', colorAcento: '#27251F', icono: '⚾' }
+];
 
-  dodgers: {
-    id: 'dodgers',
-    nombre: 'Los Angeles Dodgers',
-    corto: 'Dodgers',
-    colorPrimario: '#005A9C',
-    colorAcento: '#EF3E42',
-    icono: '⚾',
+/* =========================================================
+   GENERAR TEAMS_DATA A PARTIR DE TEAM_LIST
+   ========================================================= */
+
+const TEAMS_DATA = {};
+
+TEAM_LIST.forEach((t) => {
+  TEAMS_DATA[t.id] = {
+    id: t.id,
+    nombre: t.nombre,
+    corto: t.corto,
+    colorPrimario: t.colorPrimario,
+    colorAcento: t.colorAcento,
+    icono: t.icono,
+    modelo: t.modelo || 'assets/pelota.glb',
 
     historia: {
-      resumen: 'Texto pendiente: resumen corto de la historia del equipo (2-3 líneas).',
+      resumen: 'Texto pendiente: resumen corto de la historia de ' + t.corto + '.',
       hitos: [
-        { anio: '1883', texto: 'Hito pendiente de reemplazar con historia real del equipo.' },
-        { anio: '1958', texto: 'Hito pendiente de reemplazar con historia real del equipo.' },
-        { anio: '2020', texto: 'Hito pendiente de reemplazar con historia real del equipo.' }
+        { anio: '19XX', texto: 'Hito pendiente de reemplazar con historia real de ' + t.corto + '.' },
+        { anio: '20XX', texto: 'Hito pendiente de reemplazar con historia real de ' + t.corto + '.' }
       ]
     },
 
     videos: [
-      { titulo: 'Video pendiente 1', duracion: '0:00' },
-      { titulo: 'Video pendiente 2', duracion: '0:00' },
-      { titulo: 'Video pendiente 3', duracion: '0:00' }
+      { titulo: 'Video pendiente 1 de ' + t.corto, duracion: '0:00' },
+      { titulo: 'Video pendiente 2 de ' + t.corto, duracion: '0:00' }
     ],
 
-    // Se conectará a la API de MLB en el siguiente paso del roadmap
     stats: [
       { nombre: 'Victorias', valor: '--', pct: 0 },
       { nombre: 'Derrotas', valor: '--', pct: 0 },
       { nombre: 'Posición en la división', valor: '--', pct: 0 }
     ],
 
-    // Se llenará con las 15 preguntas en el siguiente paso
     trivia: [],
-
-    // Se llenará con la lista de premios en el siguiente paso
     premios: []
-  }
-
-  // 👉 Aquí van los otros 14 equipos de la Liga Nacional,
-  //    siguiendo exactamente la misma estructura de "dodgers".
-
-};
+  };
+});
 
 /* =========================================================
-   HISTORIA DE LA LIGA NACIONAL
-   =========================================================
-   Esta es compartida por los 15 equipos (no se repite por
-   equipo), tal como la pediste: "historia del equipo
-   e historia de la liga".
+   HISTORIA DE LA LIGA NACIONAL (compartida por los 15 equipos)
    ========================================================= */
 
 const LIGA_NACIONAL_HISTORIA = {
@@ -74,11 +82,6 @@ const LIGA_NACIONAL_HISTORIA = {
 
 /* =========================================================
    MAPEO targetIndex -> equipo
-   =========================================================
-   El índice debe coincidir EXACTAMENTE con el orden en que
-   compilaste las imágenes/objetos dentro de targets.mind.
-   Por ahora solo existe 1 target compilado (índice 0), por
-   eso solo hay una línea activa.
    ========================================================= */
 
 const TEAM_BY_TARGET_INDEX = [
