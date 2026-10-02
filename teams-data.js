@@ -82,9 +82,21 @@ const LIGA_NACIONAL_HISTORIA = {
    ========================================================= */
 
 const TEAM_BY_TARGET_INDEX = [
-  'dodgers'   // targetIndex 0 → el target que ya tienes compilado
-  // , 'giants'   // targetIndex 1 → descomenta cuando agregues el siguiente logo
-  // , 'padres'   // targetIndex 2
+  'dodgers',     // targetIndex 0
+  'braves',      // targetIndex 1
+  'marlins',     // targetIndex 2
+  'mets',        // targetIndex 3
+  'phillies',    // targetIndex 4
+  'nationals',   // targetIndex 5
+  'cubs',        // targetIndex 6
+  'reds',        // targetIndex 7
+  'brewers',     // targetIndex 8
+  'pirates',     // targetIndex 9
+  'cardinals',   // targetIndex 10
+  'dbacks',      // targetIndex 11
+  'rockies',     // targetIndex 12
+  'padres',      // targetIndex 13
+  'giants'       // targetIndex 14
 ];
 
 /* Equipo actualmente detectado por la cámara (null = ninguno) */
