@@ -760,6 +760,122 @@ function hideModel() {
 
 
 /* =========================================================
+   CONTENIDO DINÁMICO POR EQUIPO
+   ========================================================= */
+
+function setCurrentTeam(teamId) {
+  currentTeamId = teamId;
+  renderTeamContent(teamId);
+}
+
+function clearCurrentTeam() {
+  currentTeamId = null;
+  renderTeamContent(null);
+}
+
+function renderTimeline(containerId, hitos) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  (hitos || []).forEach((h, i, arr) => {
+    const item = document.createElement('div');
+    item.className = 't-item';
+    const isLast = i === arr.length - 1;
+
+    item.innerHTML =
+      '<div class="t-dot-col"><div class="t-dot"></div>' +
+      (isLast ? '' : '<div class="t-line"></div>') +
+      '</div>' +
+      '<div><div class="t-year">' + h.anio + '</div>' +
+      '<div class="t-text">' + h.texto + '</div></div>';
+
+    container.appendChild(item);
+  });
+}
+
+function renderTeamContent(teamId) {
+
+  const team = (teamId && typeof TEAMS_DATA !== 'undefined')
+    ? TEAMS_DATA[teamId]
+    : null;
+
+  /* ---------- Banner en Home ---------- */
+  const banner = document.getElementById('active-team-banner');
+  const bannerName = document.getElementById('active-team-name');
+  const bannerIcon = document.getElementById('active-team-icon');
+
+  if (banner) banner.style.display = team ? 'flex' : 'none';
+  if (team && bannerName) bannerName.textContent = team.nombre;
+  if (team && bannerIcon) bannerIcon.textContent = team.icono || '⚾';
+
+  /* ---------- Historia ---------- */
+  const histTitle = document.getElementById('history-team-title');
+  if (histTitle) {
+    histTitle.textContent = team
+      ? 'Historia de ' + team.nombre
+      : 'Historia del equipo (escanea un logo)';
+  }
+
+  renderTimeline('history-team-timeline', team ? team.historia.hitos : []);
+  renderTimeline(
+    'history-league-timeline',
+    (typeof LIGA_NACIONAL_HISTORIA !== 'undefined') ? LIGA_NACIONAL_HISTORIA.hitos : []
+  );
+
+  /* ---------- Video ---------- */
+  const videoList = document.getElementById('video-list');
+  if (videoList) {
+    videoList.innerHTML = '';
+
+    if (team && team.videos && team.videos.length) {
+      team.videos.forEach((v) => {
+        const card = document.createElement('div');
+        card.className = 'video-card';
+        card.innerHTML =
+          '<div class="video-thumb vt"><span class="play">▶</span></div>' +
+          '<div class="video-meta"><div class="t">' + v.titulo + '</div>' +
+          '<div class="d">' + (v.duracion || '') + '</div></div>';
+        videoList.appendChild(card);
+      });
+    } else {
+      videoList.innerHTML = '<div class="gal-empty">Escanea un logo para ver los videos del equipo.</div>';
+    }
+  }
+
+  /* ---------- Stats ---------- */
+  const statsList = document.getElementById('stats-list');
+  if (statsList) {
+    statsList.innerHTML = '';
+
+    if (team && team.stats && team.stats.length) {
+      const card = document.createElement('div');
+      card.className = 'stat-card';
+
+      team.stats.forEach((s) => {
+        card.innerHTML +=
+          '<div class="stat-row"><div class="stat-name">' + s.nombre +
+          '</div><div class="stat-val">' + s.valor + '</div></div>' +
+          '<div class="bar-bg"><div class="bar-fill" style="width:' +
+          (s.pct || 0) + '%"></div></div>';
+      });
+
+      statsList.appendChild(card);
+    } else {
+      statsList.innerHTML = '<div class="gal-empty">Escanea un logo para ver las estadísticas del equipo.</div>';
+    }
+  }
+
+  /* ---------- Galería ---------- */
+  const galLabel = document.getElementById('gallery-team-label');
+  if (galLabel) galLabel.textContent = team ? 'Galería · ' + team.nombre : 'Galería';
+
+  console.log('[Equipos] contenido actualizado para:', teamId || '(ninguno)');
+}
+
+
+/* =========================================================
    EVENTOS MINDAR
    ========================================================= */
 
@@ -767,64 +883,47 @@ window.addEventListener(
   'DOMContentLoaded',
   () => {
 
-    const target =
-      document.querySelector(
-        '#ar-target'
-      );
+    const targets = document.querySelectorAll('[id^="ar-target-"]');
 
-    if (!target) {
-
-      console.error(
-        '[MindAR] No se encontró #ar-target'
-      );
-
+    if (!targets.length) {
+      console.error('[MindAR] No se encontraron entidades ar-target-N');
       return;
     }
 
+    targets.forEach((target) => {
 
-    /* -----------------------------------
-       LOGO ENCONTRADO
-       ----------------------------------- */
+      const idx = parseInt(target.id.replace('ar-target-', ''), 10);
 
-    target.addEventListener(
-      'targetFound',
-      () => {
+      target.addEventListener('targetFound', () => {
 
-        console.log(
-          '[MindAR] target encontrado'
-        );
+        const teamId = (typeof TEAM_BY_TARGET_INDEX !== 'undefined')
+          ? TEAM_BY_TARGET_INDEX[idx]
+          : null;
 
-        setARStatus(
-          '¡Logo detectado!'
-        );
+        const team = teamId && typeof TEAMS_DATA !== 'undefined'
+          ? TEAMS_DATA[teamId]
+          : null;
+
+        console.log('[MindAR] target encontrado, índice:', idx, '-> equipo:', teamId);
+
+        setARStatus(team ? ('¡' + team.nombre + ' detectado!') : '¡Logo detectado!');
 
         showModel();
 
-      }
-    );
+        if (teamId) setCurrentTeam(teamId);
+      });
 
-
-    /* -----------------------------------
-       LOGO PERDIDO
-       ----------------------------------- */
-
-    target.addEventListener(
-      'targetLost',
-      () => {
-
-        console.log(
-          '[MindAR] target perdido'
-        );
-
-        setARStatus(
-          'Apunta la cámara al logo para ver el modelo 3D'
-        );
-
+      target.addEventListener('targetLost', () => {
+        console.log('[MindAR] target perdido, índice:', idx);
+        setARStatus('Apunta la cámara al logo para ver el modelo 3D');
         hideModel();
+        clearCurrentTeam();
+      });
 
-      }
-    );
+    });
 
+    // Estado inicial de las pantallas (sin equipo detectado todavía)
+    renderTeamContent(null);
   }
 );
 

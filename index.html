@@ -25,6 +25,13 @@
       </div>
       <div class="badge">⚾</div>
     </div>
+    <div class="team-banner" id="active-team-banner" style="display:none;">
+      <span class="team-banner-ic" id="active-team-icon">⚾</span>
+      <div>
+        <div class="team-banner-eyebrow">Viendo contenido de</div>
+        <div class="team-banner-name" id="active-team-name">—</div>
+      </div>
+    </div>
     <div class="hero">
       <button class="btn-primary" onclick="go('ar')">Escanear ahora</button>
     </div>
@@ -55,7 +62,11 @@
         vr-mode-ui="enabled: false"
         device-orientation-permission-ui="enabled: false">
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-        <a-entity id="ar-target" mindar-image-target="targetIndex: 0"></a-entity>
+        <!-- Un <a-entity> por cada logo compilado en targets.mind.
+             El id "ar-target-N" debe coincidir con targetIndex: N.
+             Cuando agregues más equipos, copia esta línea y sube el número. -->
+        <a-entity id="ar-target-0" mindar-image-target="targetIndex: 0"></a-entity>
+        <!-- <a-entity id="ar-target-1" mindar-image-target="targetIndex: 1"></a-entity> -->
       </a-scene>
       <canvas id="ar-model-canvas" class="ar-model-canvas"></canvas>
        <canvas id="ar-confetti-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1000;"></canvas>
@@ -76,8 +87,8 @@
        <div class="ar-controls">
       <button class="ar-btn" id="ar-anim-btn" onclick="toggleModelAnimation(this)">⏸️ Pausar</button>
       <button class="ar-btn" onclick="burstConfetti()">🎊 Confeti</button>
-      <button class="ar-btn" onclick="captureAR()">📸 Capturar</button>
-      <button class="ar-btn" onclick="go('gallery')">🖼️ Ver galería</button>
+      <button class="ar-btn">📸 Capturar</button>
+      <button class="ar-btn">🖼️ Ver galería</button>
     </div>
   </div>
 
@@ -91,11 +102,13 @@
       <div class="filter-chip" onclick="setVFilter(this,'f-thermal')">Térmica</div>
       <div class="filter-chip" onclick="setVFilter(this,'f-pastel')">Pastel</div>
     </div>
+    <div id="video-list"></div>
   </div>
 
   <!-- STATS -->
   <div class="screen" id="screen-stats">
     <div class="topbar"><div><div class="eyebrow">En tiempo real</div><h1>Estadísticas</h1></div><div class="badge" onclick="go('home')" style="cursor:pointer;">←</div></div>
+    <div id="stats-list"></div>
   </div>
 
   <!-- TRIVIA (sin funcionalidad) -->
@@ -188,12 +201,18 @@
   <!-- HISTORY -->
   <div class="screen" id="screen-history">
     <div class="topbar"><div><div class="eyebrow">Legado</div><h1>Historia</h1></div><div class="badge" onclick="go('home')" style="cursor:pointer;">←</div></div>
+    <div class="section-title" id="history-team-title">Historia del equipo</div>
+    <div class="timeline" id="history-team-timeline"></div>
+    <div class="section-title">Historia de la Liga Nacional</div>
+    <div class="timeline" id="history-league-timeline"></div>
   </div>
 
   <!-- GALLERY -->
   <div class="screen" id="screen-gallery">
     <div class="topbar"><div><div class="eyebrow">Capturas Guardadas</div><h1>Mi Galería</h1></div><div class="badge" onclick="go('home')" style="cursor:pointer;">←</div></div>
-    <div class="gal-empty">Aún no tienes capturas.</div>
+    <div class="section-title" id="gallery-team-label">Galería</div>
+    <div class="gal-empty" id="gallery-empty">Aún no tienes capturas.</div>
+    <div class="gal-grid" id="gallery-grid"></div>
   </div>
 
   <!-- NAV -->
@@ -211,6 +230,7 @@
 
 </div>
 
+<script src="teams-data.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

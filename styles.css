@@ -87,6 +87,14 @@
   }
 
   /* HOME */
+    .team-banner{
+    margin:8px 20px 0; padding:12px 14px; border-radius:14px;
+    background:rgba(111,168,220,0.12); border:1px solid rgba(111,168,220,0.35);
+    display:flex; align-items:center; gap:12px;
+  }
+  .team-banner-ic{font-size:26px;}
+  .team-banner-eyebrow{font-family:'Space Mono',monospace; font-size:9.5px; letter-spacing:1.5px; color:var(--text-dim); text-transform:uppercase;}
+  .team-banner-name{font-family:'Oswald',sans-serif; font-weight:700; font-size:15px; color:var(--white); text-transform:uppercase; margin-top:2px;}
   .hero{
     margin:8px 20px 20px;
     border-radius:20px;
