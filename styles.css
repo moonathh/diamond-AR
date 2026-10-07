@@ -86,8 +86,9 @@
     touch-action:manipulation; user-select:none;
   }
 
+  
   /* HOME */
-    .team-banner{
+     .team-banner{
     margin:8px 20px 0; padding:12px 14px; border-radius:14px;
     background:rgba(111,168,220,0.12); border:1px solid rgba(111,168,220,0.35);
     display:flex; align-items:center; gap:12px;
@@ -274,7 +275,8 @@
   .trivia-q-text{color:var(--white); font-size:13px; font-weight:600; margin-bottom:12px; line-height:1.4;}
   .trivia-options{display:flex; flex-direction:column; gap:8px;}
   .trivia-option{background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:10px 12px; color:var(--text-dim); font-size:12px;}
-
+ .trivia-option.correct{background:rgba(111,207,151,0.15); border-color:#6FCF97; color:#6FCF97; font-weight:600;}
+  .trivia-option.incorrect{background:rgba(200,53,46,0.15); border-color:var(--brass); color:var(--brass);}
   /* HISTORY */
   .timeline{margin:0 20px;}
   .t-item{display:flex; gap:14px; margin-bottom:18px;}

@@ -15,11 +15,10 @@ function go(name) {
 
   if (name !== 'ar') {
     stopAR();
-  } else {
-    // Al volver a entrar a la pantalla AR, el viewfinder puede
-    // haber cambiado de tamaño (o recién hacerse visible), así que
-    // reajustamos el canvas de A-Frame en el siguiente frame.
-    requestAnimationFrame(resizeARScene);
+  }
+
+  if (name === 'trivia') {
+    renderTrivia(currentTeamId);
   }
 }
 
@@ -51,34 +50,6 @@ function getARSystem() {
 
   return scene.systems &&
          scene.systems['mindar-image-system'];
-}
-
-/*
- * Fuerza a A-Frame (y al visor 3D) a recalcular el tamaño
- * de sus canvas contra el tamaño real del viewfinder.
- *
- * Esto es necesario porque cambiar de pantalla solo alterna
- * una clase CSS (.active) — no dispara un evento "resize" de
- * la ventana, que es lo único que A-Frame escucha por defecto
- * para reajustar el canvas. Sin esto, el canvas puede quedarse
- * en 0x0 hasta que ocurra un resize real (por ejemplo, al abrir
- * el inspector del navegador), lo que rompe drawImage() al capturar.
- */
-function resizeARScene() {
-
-  const scene = document.querySelector('#ar-scene');
-
-  if (scene && typeof scene.resize === 'function') {
-    try {
-      scene.resize();
-    } catch (err) {
-      console.warn('[MindAR] No se pudo redimensionar la escena:', err);
-    }
-  }
-
-  if (modelViewer && typeof modelViewer.resize === 'function') {
-    modelViewer.resize();
-  }
 }
 
 async function toggleAR() {
@@ -119,13 +90,6 @@ async function startAR() {
       if (btn) {
         btn.textContent = 'DETENER CÁMARA';
       }
-
-      // El canvas de A-Frame suele arrancar con el tamaño equivocado
-      // (o incluso 0x0) hasta que ocurre un resize real de la ventana.
-      // Lo forzamos aquí, y una vez más un instante después por si el
-      // stream de video tarda un poco en estabilizar sus dimensiones.
-      requestAnimationFrame(resizeARScene);
-      setTimeout(resizeARScene, 300);
 
     } catch (err) {
 
@@ -326,15 +290,13 @@ function initModelViewer() {
   const renderer = new THREE.WebGLRenderer({
     canvas: canvas,
     alpha: true,
-    antialias: true,
-    preserveDrawingBuffer: true
+    antialias: true
   });
 
   renderer.setPixelRatio(
     Math.min(window.devicePixelRatio || 1, 2)
   );
 
-  // Fondo completamente transparente
   renderer.setClearColor(0x000000, 0);
 
 
@@ -356,7 +318,6 @@ function initModelViewer() {
     100
   );
 
-  // La cámara mira hacia el centro
   camera.position.set(0, 0, 3);
 
   camera.lookAt(0, 0, 0);
@@ -395,6 +356,7 @@ function initModelViewer() {
      ------------------------------------------------------- */
 
   let modelRoot = null;
+  let currentModelPath = null;
 
 
   /* -------------------------------------------------------
@@ -465,164 +427,124 @@ function initModelViewer() {
 
 
   /* -------------------------------------------------------
-     CARGAR .GLB
+     CARGAR .GLB (reutilizable por equipo)
      ------------------------------------------------------- */
 
-  console.log(
-    '[Visor3D] Cargando assets/pelota.glb...'
-  );
+  function loadModel(path) {
 
-  loader.load(
+    if (!path) {
+      path = 'assets/pelota.glb';
+    }
 
-    'assets/pelota.glb',
+    // Si ya es el modelo cargado, no hacer nada
+    if (path === currentModelPath && modelRoot) {
+      return;
+    }
 
-    /* ------------------------
-       ÉXITO
-       ------------------------ */
+    console.log(
+      '[Visor3D] Cargando ' + path + '...'
+    );
 
-    (gltf) => {
+    loader.load(
 
-      modelRoot = gltf.scene;
+      path,
 
-      console.log(
-        '[Visor3D] modelo .glb cargado correctamente'
-      );
+      (gltf) => {
 
-      console.log(
-        '[Visor3D] modelo:',
-        modelRoot
-      );
-
-
-      /* -----------------------------------
-         Activar todos los objetos Mesh
-         ----------------------------------- */
-
-      modelRoot.traverse(
-        (object) => {
-
-          if (object.isMesh) {
-
-            object.visible = true;
-
-            object.frustumCulled = false;
-
-          }
+        if (modelRoot) {
+          scene.remove(modelRoot);
         }
-      );
 
+        modelRoot = gltf.scene;
+        currentModelPath = path;
 
-      /* -----------------------------------
-         CALCULAR DIMENSIONES
-         ----------------------------------- */
-
-      const box =
-        new THREE.Box3().setFromObject(
-          modelRoot
+        console.log(
+          '[Visor3D] modelo .glb cargado correctamente:',
+          path
         );
 
-      const size =
-        new THREE.Vector3();
+        modelRoot.traverse(
+          (object) => {
 
-      box.getSize(size);
+            if (object.isMesh) {
 
-      const center =
-        new THREE.Vector3();
+              object.visible = true;
 
-      box.getCenter(center);
+              object.frustumCulled = false;
 
+            }
+          }
+        );
 
-      console.log(
-        '[Visor3D] tamaño original:',
-        size
-      );
+        const box =
+          new THREE.Box3().setFromObject(
+            modelRoot
+          );
 
+        const size =
+          new THREE.Vector3();
 
-      /* -----------------------------------
-         CALCULAR ESCALA
-         ----------------------------------- */
+        box.getSize(size);
 
-      const maxDim = Math.max(
-        size.x,
-        size.y,
-        size.z
-      ) || 1;
+        const center =
+          new THREE.Vector3();
 
-      const targetSize = 1.5;
+        box.getCenter(center);
 
-      const scale =
-        targetSize / maxDim;
+        console.log(
+          '[Visor3D] tamaño original:',
+          size
+        );
 
+        const maxDim = Math.max(
+          size.x,
+          size.y,
+          size.z
+        ) || 1;
 
-      /* -----------------------------------
-         CENTRAR MODELO
-         ----------------------------------- */
+        const targetSize = 1.5;
 
-      modelRoot.position.sub(center);
+        const scale =
+          targetSize / maxDim;
 
-      modelRoot.scale.setScalar(
-        scale
-      );
+        modelRoot.position.sub(center);
 
+        modelRoot.scale.setScalar(
+          scale
+        );
 
-      /*
-       * IMPORTANTE:
-       *
-       * El modelo queda en:
-       *
-       * X = 0
-       * Y = 0
-       * Z = 0
-       *
-       * Por eso aparece exactamente
-       * en el centro del visor.
-       */
+        modelRoot.position.x = 0;
+        modelRoot.position.y = -0.38;
+        modelRoot.position.z = 0;
 
-      modelRoot.position.x = 0;
-      modelRoot.position.y = -0.38;
-      modelRoot.position.z = 0;
+        modelRoot.rotation.y = -Math.PI / 2;
 
-      modelRoot.rotation.y = -Math.PI / 2;
+        scene.add(modelRoot);
 
+        console.log(
+          '[Visor3D] modelo listo y centrado'
+        );
 
-      /* -----------------------------------
-         AGREGAR A LA ESCENA
-         ----------------------------------- */
+        resize();
 
-      scene.add(modelRoot);
+      },
 
+      undefined,
 
-      console.log(
-        '[Visor3D] modelo listo y centrado'
-      );
+      (error) => {
 
+        console.error(
+          '[Visor3D] Error cargando modelo .glb:',
+          path,
+          error
+        );
 
-      // Recalcular tamaño
-      resize();
+      }
+    );
+  }
 
-    },
-
-
-    /* ------------------------
-       PROGRESO
-       ------------------------ */
-
-    undefined,
-
-
-    /* ------------------------
-       ERROR
-       ------------------------ */
-
-    (error) => {
-
-      console.error(
-        '[Visor3D] Error cargando modelo .glb:',
-        error
-      );
-
-    }
-  );
+  // Carga el modelo por defecto al iniciar (antes de detectar un equipo)
+  loadModel('assets/pelota.glb');
 
 
   /* -------------------------------------------------------
@@ -636,10 +558,7 @@ function initModelViewer() {
     );
 
     if (modelRoot && !modelAnimationPaused) {
-
-      // Rotar lentamente (solo si no está pausado)
       modelRoot.rotation.y += 0.01;
-
     }
 
     renderer.render(
@@ -658,11 +577,11 @@ function initModelViewer() {
 
   modelViewer = {
     canvas: canvas,
-    resize: resize
+    resize: resize,
+    loadModel: loadModel
   };
 
 
-  // Primer resize
   resize();
 
 
@@ -688,20 +607,9 @@ function showModel() {
     return;
   }
 
-
-  /* -----------------------------------
-     Mostrar canvas
-     ----------------------------------- */
-
   canvas.classList.add(
     'visible'
   );
-
-
-  /*
-   * Forzar que el canvas quede
-   * por encima de la cámara
-   */
 
   canvas.style.display = 'block';
   canvas.style.position = 'absolute';
@@ -712,11 +620,6 @@ function showModel() {
   canvas.style.pointerEvents = 'none';
   canvas.style.zIndex = '999';
 
-
-  /* -----------------------------------
-     Redimensionar después de mostrarlo
-     ----------------------------------- */
-
   if (viewer) {
 
     requestAnimationFrame(() => {
@@ -724,7 +627,6 @@ function showModel() {
     });
 
   }
-
 
   console.log(
     '[Visor3D] canvas mostrado'
@@ -766,15 +668,30 @@ function hideModel() {
 function setCurrentTeam(teamId) {
   currentTeamId = teamId;
   renderTeamContent(teamId);
+  updateTicketDisplays();
+
+  // Cambiar el modelo 3D según el equipo detectado
+  const team = (teamId && typeof TEAMS_DATA !== 'undefined')
+    ? TEAMS_DATA[teamId]
+    : null;
+
+  const modelPath = (team && team.modelo) ? team.modelo : 'assets/pelota.glb';
+  const viewer = initModelViewer();
+
+  if (viewer && viewer.loadModel) {
+    viewer.loadModel(modelPath);
+  }
 }
 
 function clearCurrentTeam() {
   currentTeamId = null;
   renderTeamContent(null);
+  updateTicketDisplays();
 }
 
 function renderTimeline(containerId, hitos) {
   const container = document.getElementById(containerId);
+
   if (!container) return;
 
   container.innerHTML = '';
@@ -782,6 +699,7 @@ function renderTimeline(containerId, hitos) {
   (hitos || []).forEach((h, i, arr) => {
     const item = document.createElement('div');
     item.className = 't-item';
+
     const isLast = i === arr.length - 1;
 
     item.innerHTML =
@@ -802,30 +720,43 @@ function renderTeamContent(teamId) {
     : null;
 
   /* ---------- Banner en Home ---------- */
+
   const banner = document.getElementById('active-team-banner');
   const bannerName = document.getElementById('active-team-name');
   const bannerIcon = document.getElementById('active-team-icon');
 
-  if (banner) banner.style.display = team ? 'flex' : 'none';
+  if (banner) {
+    banner.style.display = team ? 'flex' : 'none';
+  }
   if (team && bannerName) bannerName.textContent = team.nombre;
   if (team && bannerIcon) bannerIcon.textContent = team.icono || '⚾';
 
   /* ---------- Historia ---------- */
+
   const histTitle = document.getElementById('history-team-title');
+
   if (histTitle) {
     histTitle.textContent = team
       ? 'Historia de ' + team.nombre
       : 'Historia del equipo (escanea un logo)';
   }
 
-  renderTimeline('history-team-timeline', team ? team.historia.hitos : []);
+  renderTimeline(
+    'history-team-timeline',
+    team ? team.historia.hitos : []
+  );
+
   renderTimeline(
     'history-league-timeline',
-    (typeof LIGA_NACIONAL_HISTORIA !== 'undefined') ? LIGA_NACIONAL_HISTORIA.hitos : []
+    (typeof LIGA_NACIONAL_HISTORIA !== 'undefined')
+      ? LIGA_NACIONAL_HISTORIA.hitos
+      : []
   );
 
   /* ---------- Video ---------- */
+
   const videoList = document.getElementById('video-list');
+
   if (videoList) {
     videoList.innerHTML = '';
 
@@ -840,12 +771,15 @@ function renderTeamContent(teamId) {
         videoList.appendChild(card);
       });
     } else {
-      videoList.innerHTML = '<div class="gal-empty">Escanea un logo para ver los videos del equipo.</div>';
+      videoList.innerHTML =
+        '<div class="gal-empty">Escanea un logo para ver los videos del equipo.</div>';
     }
   }
 
   /* ---------- Stats ---------- */
+
   const statsList = document.getElementById('stats-list');
+
   if (statsList) {
     statsList.innerHTML = '';
 
@@ -863,15 +797,25 @@ function renderTeamContent(teamId) {
 
       statsList.appendChild(card);
     } else {
-      statsList.innerHTML = '<div class="gal-empty">Escanea un logo para ver las estadísticas del equipo.</div>';
+      statsList.innerHTML =
+        '<div class="gal-empty">Escanea un logo para ver las estadísticas del equipo.</div>';
     }
   }
 
   /* ---------- Galería ---------- */
-  const galLabel = document.getElementById('gallery-team-label');
-  if (galLabel) galLabel.textContent = team ? 'Galería · ' + team.nombre : 'Galería';
 
-  console.log('[Equipos] contenido actualizado para:', teamId || '(ninguno)');
+  const galLabel = document.getElementById('gallery-team-label');
+
+  if (galLabel) {
+    galLabel.textContent = team
+      ? 'Galería · ' + team.nombre
+      : 'Galería';
+  }
+
+  console.log(
+    '[Equipos] contenido actualizado para:',
+    teamId || '(ninguno)'
+  );
 }
 
 
@@ -883,42 +827,73 @@ window.addEventListener(
   'DOMContentLoaded',
   () => {
 
-    const targets = document.querySelectorAll('[id^="ar-target-"]');
+    const targets =
+      document.querySelectorAll('[id^="ar-target-"]');
 
     if (!targets.length) {
-      console.error('[MindAR] No se encontraron entidades ar-target-N');
+
+      console.error(
+        '[MindAR] No se encontraron entidades ar-target-N'
+      );
+
       return;
     }
 
     targets.forEach((target) => {
 
-      const idx = parseInt(target.id.replace('ar-target-', ''), 10);
+      const idx = parseInt(
+        target.id.replace('ar-target-', ''),
+        10
+      );
 
-      target.addEventListener('targetFound', () => {
+      target.addEventListener(
+        'targetFound',
+        () => {
 
-        const teamId = (typeof TEAM_BY_TARGET_INDEX !== 'undefined')
-          ? TEAM_BY_TARGET_INDEX[idx]
-          : null;
+          const teamId =
+            (typeof TEAM_BY_TARGET_INDEX !== 'undefined')
+              ? TEAM_BY_TARGET_INDEX[idx]
+              : null;
 
-        const team = teamId && typeof TEAMS_DATA !== 'undefined'
-          ? TEAMS_DATA[teamId]
-          : null;
+          const team =
+            teamId && typeof TEAMS_DATA !== 'undefined'
+              ? TEAMS_DATA[teamId]
+              : null;
 
-        console.log('[MindAR] target encontrado, índice:', idx, '-> equipo:', teamId);
+          console.log(
+            '[MindAR] target encontrado, índice:', idx,
+            '-> equipo:', teamId
+          );
 
-        setARStatus(team ? ('¡' + team.nombre + ' detectado!') : '¡Logo detectado!');
+          setARStatus(
+            team ? ('¡' + team.nombre + ' detectado!') : '¡Logo detectado!'
+          );
 
-        showModel();
+          showModel();
 
-        if (teamId) setCurrentTeam(teamId);
-      });
+          if (teamId) {
+            setCurrentTeam(teamId);
+          }
+        }
+      );
 
-      target.addEventListener('targetLost', () => {
-        console.log('[MindAR] target perdido, índice:', idx);
-        setARStatus('Apunta la cámara al logo para ver el modelo 3D');
-        hideModel();
-        clearCurrentTeam();
-      });
+      target.addEventListener(
+        'targetLost',
+        () => {
+
+          console.log(
+            '[MindAR] target perdido, índice:', idx
+          );
+
+          setARStatus(
+            'Apunta la cámara al logo para ver el modelo 3D'
+          );
+
+          hideModel();
+
+          clearCurrentTeam();
+        }
+      );
 
     });
 
@@ -1012,252 +987,175 @@ function burstConfetti() {
 
 
 /* =========================================================
-   CAPTURA DE FOTO (cámara + modelo 3D + filtro activo)
+   TICKETS POR EQUIPO (persistentes con localStorage)
    ========================================================= */
 
-async function captureAR() {
+const TICKETS_STORAGE_KEY = 'diamondAR_tickets';
 
-  if (!arRunning) {
-    setARStatus('Activa la cámara antes de capturar.', true);
-    return;
-  }
-
-  let videoCanvas = document.querySelector('#ar-scene canvas');
-  const modelCanvas = document.getElementById('ar-model-canvas');
-  const confettiCanvas = document.getElementById('ar-confetti-canvas');
-  const viewfinder = document.getElementById('ar-viewfinder');
-
-  if (!videoCanvas || !viewfinder) {
-    setARStatus('No se pudo capturar la imagen.', true);
-    return;
-  }
-
-  // Salvaguarda: si el canvas de la cámara todavía está en 0x0
-  // (puede pasar justo al entrar a AR, antes de un resize real),
-  // forzamos el ajuste de tamaño y esperamos un frame antes de
-  // intentar de nuevo, en vez de fallar directamente.
-  if (videoCanvas.width === 0 || videoCanvas.height === 0) {
-
-    resizeARScene();
-
-    await new Promise(resolve => requestAnimationFrame(resolve));
-
-    videoCanvas = document.querySelector('#ar-scene canvas');
-
-    if (!videoCanvas || videoCanvas.width === 0 || videoCanvas.height === 0) {
-      setARStatus(
-        'La cámara aún se está ajustando. Espera un segundo e intenta de nuevo.',
-        true
-      );
-      return;
-    }
-  }
-
-  const width = viewfinder.clientWidth;
-  const height = viewfinder.clientHeight;
-
-  const out = document.createElement('canvas');
-  out.width = width;
-  out.height = height;
-
-  const ctx = out.getContext('2d');
-
-  // El filtro activo (CSS) se re-aplica sobre el canvas final
-  const activeFilter = videoCanvas.style.filter || 'none';
-
+function loadTicketsFromStorage() {
   try {
-
-    // 1. Fondo: feed de la cámara (dibujado por MindAR/A-Frame)
-    ctx.filter = activeFilter;
-    ctx.drawImage(videoCanvas, 0, 0, width, height);
-
-    // 2. Encima: el modelo 3D, solo si está visible en este momento
-    if (modelCanvas && modelCanvas.classList.contains('visible')) {
-      ctx.filter = activeFilter;
-      ctx.drawImage(modelCanvas, 0, 0, width, height);
-    }
-
-    // 3. Encima de todo: el confeti (si hay una animación en curso).
-    //    No lleva el filtro aplicado, para que sus colores no se alteren.
-    if (confettiCanvas && confettiCanvas.width > 0 && confettiCanvas.height > 0) {
-      ctx.filter = 'none';
-      ctx.drawImage(confettiCanvas, 0, 0, width, height);
-    }
-
-    ctx.filter = 'none';
-
-    const dataUrl = out.toDataURL('image/png');
-
-    saveCapture(dataUrl);
-    flashCaptureEffect();
-
-    setARStatus('¡Captura guardada en tu galería!');
-
+    const raw = localStorage.getItem(TICKETS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
   } catch (err) {
+    console.warn('[Tickets] No se pudo leer localStorage:', err);
+    return {};
+  }
+}
 
-    // Esto ocurre típicamente por un canvas "contaminado" (tainted)
-    // si el feed de cámara o el modelo cargan recursos sin CORS habilitado.
-    console.error('[Captura] Error al generar la imagen:', err);
-
-    setARStatus(
-      'No se pudo guardar la captura (error de seguridad del navegador).',
-      true
+function saveTicketsToStorage(ticketsByTeam) {
+  try {
+    localStorage.setItem(
+      TICKETS_STORAGE_KEY,
+      JSON.stringify(ticketsByTeam)
     );
+  } catch (err) {
+    console.warn('[Tickets] No se pudo guardar en localStorage:', err);
   }
 }
 
-function flashCaptureEffect() {
+// Objeto en memoria: { teamId: cantidadDeTickets }
+let ticketsByTeam = loadTicketsFromStorage();
 
-  const vf = document.getElementById('ar-viewfinder');
-
-  if (!vf) return;
-
-  const flash = document.createElement('div');
-
-  flash.style.position = 'absolute';
-  flash.style.inset = '0';
-  flash.style.background = '#ffffff';
-  flash.style.opacity = '0.85';
-  flash.style.zIndex = '2000';
-  flash.style.pointerEvents = 'none';
-  flash.style.transition = 'opacity 0.35s ease';
-
-  vf.appendChild(flash);
-
-  requestAnimationFrame(() => {
-    flash.style.opacity = '0';
-  });
-
-  setTimeout(() => flash.remove(), 400);
+function getTicketsFor(teamId) {
+  if (!teamId) return 0;
+  return ticketsByTeam[teamId] || 0;
 }
 
+function addTicketFor(teamId) {
+  if (!teamId) return;
 
-/* =========================================================
-   GALERÍA (persistida en localStorage)
-   ========================================================= */
+  ticketsByTeam[teamId] = getTicketsFor(teamId) + 1;
+  saveTicketsToStorage(ticketsByTeam);
+  updateTicketDisplays();
+}
 
-const GALLERY_KEY = 'diamondar_gallery';
+function spendTicketFor(teamId) {
+  if (!teamId || getTicketsFor(teamId) <= 0) return false;
 
-function loadGallery() {
+  ticketsByTeam[teamId] = getTicketsFor(teamId) - 1;
+  saveTicketsToStorage(ticketsByTeam);
+  updateTicketDisplays();
+  return true;
+}
 
-  try {
-    return JSON.parse(localStorage.getItem(GALLERY_KEY)) || [];
-  } catch (err) {
-    console.warn('[Galería] No se pudo leer el almacenamiento:', err);
+// Muestra el conteo de tickets DEL EQUIPO ACTUALMENTE ESCANEADO
+function updateTicketDisplays() {
+  const trivia = document.getElementById('trivia-ticket-count');
+  const game = document.getElementById('game-ticket-count');
+  const count = getTicketsFor(currentTeamId);
+
+  if (trivia) trivia.textContent = count;
+  if (game) game.textContent = count;
+}
+
+// Mezcla un array sin modificar el original (Fisher-Yates)
+function shuffleArray(arr) {
+  const copy = arr.slice();
+
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+
+  return copy;
+}
+
+// Toma N preguntas al azar del banco del equipo y también
+// mezcla las opciones de cada una (reubicando la correcta).
+function pickRandomTrivia(teamId, count) {
+  const team = (teamId && typeof TEAMS_DATA !== 'undefined')
+    ? TEAMS_DATA[teamId]
+    : null;
+
+  if (!team || !team.trivia || !team.trivia.length) {
     return [];
   }
-}
 
-function saveCapture(dataUrl) {
+  const elegidas = shuffleArray(team.trivia).slice(0, count);
 
-  const gallery = loadGallery();
+  return elegidas.map((q) => {
+    const opcionesConIndice = q.opciones.map((texto, i) => ({
+      texto: texto,
+      esCorrecta: i === q.correcta
+    }));
 
-  gallery.unshift({
-    img: dataUrl,
-    ts: Date.now()
+    const mezcladas = shuffleArray(opcionesConIndice);
+
+    return {
+      pregunta: q.pregunta,
+      opciones: mezcladas
+    };
   });
-
-  try {
-    localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
-  } catch (err) {
-    // Almacenamiento lleno u otro error: seguimos mostrando la captura
-    // en memoria para esta sesión aunque no se persista.
-    console.warn('[Galería] No se pudo guardar en localStorage:', err);
-  }
-
-  renderGallery();
-  updateGalleryCount();
 }
 
-function deleteCapture(index) {
+function renderTrivia(teamId) {
+  const container = document.getElementById('trivia-questions');
 
-  const gallery = loadGallery();
+  if (!container) return;
 
-  gallery.splice(index, 1);
+  container.innerHTML = '';
 
-  try {
-    localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
-  } catch (err) {
-    console.warn('[Galería] No se pudo actualizar el almacenamiento:', err);
-  }
-
-  renderGallery();
-  updateGalleryCount();
-}
-
-function updateGalleryCount() {
-
-  const count = loadGallery().length;
-
-  const sub = document.querySelector('#screen-home .menu-card .sub');
-
-  if (sub) {
-    sub.textContent = count + (count === 1 ? ' captura' : ' capturas');
-  }
-}
-
-function renderGallery() {
-
-  const screen = document.getElementById('screen-gallery');
-
-  if (!screen) return;
-
-  const gallery = loadGallery();
-
-  let grid = screen.querySelector('.gal-grid');
-  const empty = screen.querySelector('.gal-empty');
-
-  if (gallery.length === 0) {
-
-    if (grid) grid.remove();
-    if (empty) empty.style.display = '';
-
+  if (!teamId) {
+    container.innerHTML =
+      '<div class="gal-empty">Escanea un logo para jugar la trivia de ese equipo.</div>';
     return;
   }
 
-  if (empty) empty.style.display = 'none';
+  const preguntas = pickRandomTrivia(teamId, 5);
 
-  if (!grid) {
-    grid = document.createElement('div');
-    grid.className = 'gal-grid';
-    screen.appendChild(grid);
+  if (!preguntas.length) {
+    container.innerHTML =
+      '<div class="gal-empty">Este equipo todavía no tiene preguntas cargadas.</div>';
+    return;
   }
 
-  grid.innerHTML = '';
+  preguntas.forEach((q, qIndex) => {
 
-  gallery.forEach((item, i) => {
+    const card = document.createElement('div');
+    card.className = 'trivia-card';
 
-    const cell = document.createElement('div');
-    cell.className = 'gal-cell';
+    card.innerHTML =
+      '<div class="trivia-q-num">Pregunta ' + (qIndex + 1) + '</div>' +
+      '<div class="trivia-q-text">' + q.pregunta + '</div>' +
+      '<div class="trivia-options"></div>';
 
-    const img = document.createElement('img');
-    img.src = item.img;
-    img.alt = 'Captura AR';
+    const optionsWrap = card.querySelector('.trivia-options');
 
-    const del = document.createElement('button');
-    del.className = 'gal-del';
-    del.textContent = '✕';
-    del.setAttribute('aria-label', 'Eliminar captura');
-    del.onclick = (e) => {
-      e.stopPropagation();
-      deleteCapture(i);
-    };
+    q.opciones.forEach((op) => {
 
-    const dl = document.createElement('a');
-    dl.className = 'gal-dl';
-    dl.textContent = '⬇︎';
-    dl.href = item.img;
-    dl.download = 'diamondar-captura-' + item.ts + '.png';
-    dl.setAttribute('aria-label', 'Descargar captura');
+      const optEl = document.createElement('div');
+      optEl.className = 'trivia-option';
+      optEl.textContent = op.texto;
 
-    cell.appendChild(img);
-    cell.appendChild(del);
-    cell.appendChild(dl);
-    grid.appendChild(cell);
+      optEl.addEventListener('click', () => {
+
+        if (card.dataset.answered === 'true') {
+          return;
+        }
+
+        card.dataset.answered = 'true';
+
+        optionsWrap.querySelectorAll('.trivia-option').forEach((el, i) => {
+          if (q.opciones[i].esCorrecta) {
+            el.classList.add('correct');
+          }
+        });
+
+        if (op.esCorrecta) {
+          optEl.classList.add('correct');
+          addTicketFor(teamId);
+        } else {
+          optEl.classList.add('incorrect');
+        }
+      });
+
+      optionsWrap.appendChild(optEl);
+    });
+
+    container.appendChild(card);
   });
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-  renderGallery();
-  updateGalleryCount();
-});
+
+// Inicializar los contadores de tickets visibles en pantalla
+updateTicketDisplays();

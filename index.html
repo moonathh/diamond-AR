@@ -62,7 +62,8 @@
         vr-mode-ui="enabled: false"
         device-orientation-permission-ui="enabled: false">
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-       
+        <!-- Un <a-entity> por cada logo compilado en targets.mind.
+             El id "ar-target-N" debe coincidir con targetIndex: N. -->
         <a-entity id="ar-target-0" mindar-image-target="targetIndex: 0"></a-entity>
         <a-entity id="ar-target-1" mindar-image-target="targetIndex: 1"></a-entity>
         <a-entity id="ar-target-2" mindar-image-target="targetIndex: 2"></a-entity>
@@ -78,7 +79,6 @@
         <a-entity id="ar-target-12" mindar-image-target="targetIndex: 12"></a-entity>
         <a-entity id="ar-target-13" mindar-image-target="targetIndex: 13"></a-entity>
         <a-entity id="ar-target-14" mindar-image-target="targetIndex: 14"></a-entity>
-        
       </a-scene>
       <canvas id="ar-model-canvas" class="ar-model-canvas"></canvas>
        <canvas id="ar-confetti-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1000;"></canvas>
@@ -123,7 +123,7 @@
     <div id="stats-list"></div>
   </div>
 
-  <!-- TRIVIA (sin funcionalidad) -->
+  <!-- TRIVIA -->
   <div class="screen" id="screen-trivia">
     <div class="topbar"><div><div class="eyebrow">Pon a prueba tu conocimiento</div><h1>Trivia MLB</h1></div><div class="badge" onclick="go('home')" style="cursor:pointer;">←</div></div>
 
@@ -131,73 +131,20 @@
       <div class="tt-left">
         <div class="tt-ic">🎟️</div>
         <div>
-          <div class="tt-count">0</div>
+          <div class="tt-count" id="trivia-ticket-count">0</div>
           <div class="tt-label">Tickets ganados</div>
         </div>
       </div>
     </div>
 
-    <div class="trivia-card">
-      <div class="trivia-q-num">Pregunta 1</div>
-      <div class="trivia-q-text">¿?</div>
-      <div class="trivia-options">
-        <div class="trivia-option"></div>
-        <div class="trivia-option"></div>
-        <div class="trivia-option"></div>
-        <div class="trivia-option"></div>
-      </div>
-    </div>
-
-    <div class="trivia-card">
-      <div class="trivia-q-num">Pregunta 2</div>
-      <div class="trivia-q-text">¿?</div>
-      <div class="trivia-options">
-        <div class="trivia-option"></div>
-        <div class="trivia-option"></div>
-        <div class="trivia-option"></div>
-        <div class="trivia-option"></div>
-      </div>
-    </div>
-
-    <div class="trivia-card">
-      <div class="trivia-q-num">Pregunta 3</div>
-      <div class="trivia-q-text">¿?</div>
-      <div class="trivia-options">
-        <div class="trivia-option"></div>
-        <div class="trivia-option"></div>
-        <div class="trivia-option"></div>
-        <div class="trivia-option"></div>
-      </div>
-    </div>
-
-    <div class="trivia-card">
-      <div class="trivia-q-num">Pregunta 4</div>
-      <div class="trivia-q-text">¿?</div>
-      <div class="trivia-options">
-        <div class="trivia-option"></div>
-        <div class="trivia-option"></div>
-        <div class="trivia-option"></div>
-        <div class="trivia-option"></div>
-      </div>
-    </div>
-
-    <div class="trivia-card">
-      <div class="trivia-q-num">Pregunta 5</div>
-      <div class="trivia-q-text">¿?</div>
-      <div class="trivia-options">
-        <div class="trivia-option"></div>
-        <div class="trivia-option"></div>
-        <div class="trivia-option"></div>
-        <div class="trivia-option"></div>
-      </div>
-    </div>
+    <div id="trivia-questions"></div>
   </div>
 
-  <!-- GAME (sin funcionalidad) -->
+  <!-- GAME (sin funcionalidad todavía) -->
   <div class="screen" id="screen-game">
     <div class="topbar"><div><div class="eyebrow">Juego</div><h1>Participa por mercancía del equipo</h1></div><div class="badge" onclick="go('home')" style="cursor:pointer;">←</div></div>
     <div class="ticket-box">
-      <div class="ticket-count">0</div>
+      <div class="ticket-count" id="game-ticket-count">0</div>
       <div class="ticket-label">Tickets disponibles</div>
     </div>
     <div class="section-title">Ruleta de premios</div>
