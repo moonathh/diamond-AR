@@ -261,6 +261,23 @@
     z-index:2; filter:drop-shadow(0 0 4px var(--scan));
   }
 
+  .wheel-label{position:absolute; left:50%; top:50%; width:0; height:0;}
+  .wheel-label span{
+    position:absolute; left:-34px; top:-96px; width:68px; text-align:center;
+    font-family:'Oswald',sans-serif; font-weight:700; font-size:10px; line-height:1.15;
+    text-transform:uppercase; letter-spacing:0.3px;
+  }
+  .wheel-label .wl-ic{display:block; font-size:18px; margin-bottom:1px;}
+  .game-result{margin:6px 20px 0; min-height:20px; text-align:center; font-size:13px; font-weight:600; color:var(--text-dim);}
+  .game-result.win{color:#6FCF97;}
+  .game-result.lose{color:var(--text-dim);}
+  .game-odds{margin:8px 20px 0; text-align:center; font-family:'Space Mono',monospace; font-size:9.5px; line-height:1.6; color:var(--text-dim);}
+  .btn-primary:disabled{opacity:0.5; cursor:not-allowed;}
+  .prize-item{margin:0 20px 8px; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; gap:10px; color:var(--white); font-size:12.5px;}
+  .prize-item .prize-ic{font-size:20px;}
+  .prize-item .prize-name{flex:1;}
+  .prize-item .prize-count{font-family:'Space Mono',monospace; color:var(--brass-light); font-weight:700;}
+
   /* TRIVIA */
   .trivia-ticket-box{
     margin:0 20px 16px; background:linear-gradient(135deg,#1F4E85,var(--navy-deep)); border:1px solid rgba(200,53,46,0.35);

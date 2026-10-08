@@ -147,14 +147,18 @@
       <div class="ticket-count" id="game-ticket-count">0</div>
       <div class="ticket-label">Tickets disponibles</div>
     </div>
-    <div class="section-title">Ruleta de premios</div>
+        <div class="section-title" id="game-wheel-title">Ruleta de premios</div>
     <div class="wheel-wrap">
       <div style="position:relative;">
         <div class="wheel-pointer"></div>
-        <div class="wheel"></div>
+        <div class="wheel" id="prize-wheel"></div>
       </div>
     </div>
-    <button class="btn-primary" style="width:calc(100% - 40px); margin:8px 20px 4px;">Girar ruleta (1 ticket)</button>
+    <div class="game-result" id="game-result"></div>
+    <button class="btn-primary" id="spin-btn" style="width:calc(100% - 40px); margin:8px 20px 4px;" onclick="spinWheel()">Girar ruleta (1 ticket)</button>
+    <div class="game-odds" id="game-odds"></div>
+    <div class="section-title" id="won-prizes-title">Mis premios</div>
+    <div id="won-prizes-list"></div>
   </div>
 
   <!-- HISTORY -->

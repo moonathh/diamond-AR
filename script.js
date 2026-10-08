@@ -20,6 +20,10 @@ function go(name) {
   if (name === 'trivia') {
     renderTrivia(currentTeamId);
   }
+
+    if (name === 'game') {
+    renderGame(currentTeamId);
+  }
 }
 
 /* =========================================================
@@ -1156,6 +1160,289 @@ function renderTrivia(teamId) {
   });
 }
 
+/* =========================================================
+   RULETA DE PREMIOS POR EQUIPO
+   ========================================================= */
+
+const PRIZES_STORAGE_KEY = 'diamondAR_prizes';
+
+function loadPrizesFromStorage() {
+  try {
+    const raw = localStorage.getItem(PRIZES_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (err) {
+    console.warn('[Premios] No se pudo leer localStorage:', err);
+    return {};
+  }
+}
+
+function savePrizesToStorage(obj) {
+  try {
+    localStorage.setItem(PRIZES_STORAGE_KEY, JSON.stringify(obj));
+  } catch (err) {
+    console.warn('[Premios] No se pudo guardar en localStorage:', err);
+  }
+}
+
+let wonPrizesByTeam = loadPrizesFromStorage();
+let wheelRotation = 0;
+let wheelSpinning = false;
+
+// Devuelve el ÍNDICE del premio elegido, respetando las probabilidades
+function pickWeightedPrize(premios) {
+  const total = premios.reduce((sum, p) => sum + p.probabilidad, 0);
+  let r = Math.random() * total;
+
+  for (let i = 0; i < premios.length; i++) {
+    r -= premios[i].probabilidad;
+    if (r < 0) return i;
+  }
+
+  return premios.length - 1;
+}
+
+// Texto oscuro sobre colores claros, blanco sobre colores oscuros
+function textColorFor(hex) {
+  const h = (hex || '#000000').replace('#', '');
+  const r = parseInt(h.substr(0, 2), 16);
+  const g = parseInt(h.substr(2, 2), 16);
+  const b = parseInt(h.substr(4, 2), 16);
+  const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+  return luminance > 150 ? '#0A1B33' : '#FFFFFF';
+}
+
+function setGameMessage(text, type) {
+  const el = document.getElementById('game-result');
+
+  if (!el) return;
+
+  el.textContent = text || '';
+  el.className = 'game-result' + (type ? ' ' + type : '');
+}
+
+function setSpinButtonState(disabled) {
+  const btn = document.getElementById('spin-btn');
+
+  if (btn) btn.disabled = !!disabled;
+}
+
+function renderWheel(teamId) {
+  const wheel = document.getElementById('prize-wheel');
+
+  if (!wheel) return;
+
+  // Reiniciar posición sin animación
+  wheel.style.transition = 'none';
+  wheel.style.transform = 'rotate(0deg)';
+  wheelRotation = 0;
+  wheel.innerHTML = '';
+
+  const team = (teamId && typeof TEAMS_DATA !== 'undefined')
+    ? TEAMS_DATA[teamId]
+    : null;
+
+  if (!team || !team.premios || !team.premios.length) {
+    wheel.style.background = '#1B3A66';
+    return;
+  }
+
+  const n = team.premios.length;
+  const seg = 360 / n;
+
+  // Colores del equipo, alternando. Si n es impar, el último
+  // segmento va en azul marino para no repetir color con el primero.
+  const colors = team.premios.map((p, i) => {
+    if (i === n - 1 && n % 2 === 1) return '#1B3A66';
+    return i % 2 === 0 ? team.colorPrimario : team.colorAcento;
+  });
+
+  const stops = colors.map((c, i) =>
+    c + ' ' + (i * seg) + 'deg ' + ((i + 1) * seg) + 'deg'
+  );
+
+  wheel.style.background = 'conic-gradient(' + stops.join(', ') + ')';
+
+  team.premios.forEach((p, i) => {
+    const angle = i * seg + seg / 2;
+
+    const label = document.createElement('div');
+    label.className = 'wheel-label';
+    label.style.transform = 'rotate(' + angle + 'deg)';
+    label.innerHTML =
+      '<span style="color:' + textColorFor(colors[i]) + '">' +
+      '<b class="wl-ic">' + p.icono + '</b>' + p.etiqueta +
+      '</span>';
+
+    wheel.appendChild(label);
+  });
+}
+
+function renderWonPrizes(teamId) {
+  const list = document.getElementById('won-prizes-list');
+  const title = document.getElementById('won-prizes-title');
+
+  if (!list) return;
+
+  list.innerHTML = '';
+
+  const team = (teamId && typeof TEAMS_DATA !== 'undefined')
+    ? TEAMS_DATA[teamId]
+    : null;
+
+  if (title) {
+    title.textContent = team ? 'Mis premios · ' + team.corto : 'Mis premios';
+  }
+
+  if (!team) {
+    list.innerHTML =
+      '<div class="gal-empty">Escanea un logo para ver tus premios de ese equipo.</div>';
+    return;
+  }
+
+  const won = wonPrizesByTeam[teamId] || [];
+
+  if (!won.length) {
+    list.innerHTML =
+      '<div class="gal-empty">Aún no has ganado premios con este equipo.</div>';
+    return;
+  }
+
+  // Agrupar por tipo de premio: "Gorra oficial de X  ×2"
+  const grouped = {};
+
+  won.forEach((w) => {
+    if (!grouped[w.id]) {
+      grouped[w.id] = { icono: w.icono, descripcion: w.descripcion, count: 0 };
+    }
+    grouped[w.id].count += 1;
+  });
+
+  Object.keys(grouped).forEach((id) => {
+    const g = grouped[id];
+    const item = document.createElement('div');
+
+    item.className = 'prize-item';
+    item.innerHTML =
+      '<span class="prize-ic">' + g.icono + '</span>' +
+      '<div class="prize-name">' + g.descripcion + '</div>' +
+      '<span class="prize-count">×' + g.count + '</span>';
+
+    list.appendChild(item);
+  });
+}
+
+function renderGame(teamId) {
+  // Si la ruleta está girando, no tocarla
+  if (wheelSpinning) return;
+
+  const team = (teamId && typeof TEAMS_DATA !== 'undefined')
+    ? TEAMS_DATA[teamId]
+    : null;
+
+  const title = document.getElementById('game-wheel-title');
+  const odds = document.getElementById('game-odds');
+
+  if (title) {
+    title.textContent = team ? 'Ruleta de ' + team.nombre : 'Ruleta de premios';
+  }
+
+  renderWheel(teamId);
+  renderWonPrizes(teamId);
+
+  if (odds) {
+    odds.textContent = team
+      ? 'Probabilidades: ' + team.premios.map((p) => p.etiqueta + ' ' + p.probabilidad + '%').join(' · ')
+      : '';
+  }
+
+  setGameMessage(
+    team ? '' : 'Escanea un logo para jugar la ruleta de ese equipo.',
+    ''
+  );
+
+  setSpinButtonState(!team);
+}
+
+function spinWheel() {
+
+  if (wheelSpinning) return;
+
+  const teamId = currentTeamId;
+
+  const team = (teamId && typeof TEAMS_DATA !== 'undefined')
+    ? TEAMS_DATA[teamId]
+    : null;
+
+  if (!team || !team.premios || !team.premios.length) {
+    setGameMessage('Escanea un logo para jugar la ruleta de ese equipo.', '');
+    return;
+  }
+
+  if (getTicketsFor(teamId) <= 0) {
+    setGameMessage(
+      'No tienes tickets de ' + team.corto + '. ¡Gana más en la Trivia!',
+      ''
+    );
+    return;
+  }
+
+  // Cobrar el ticket ANTES de girar
+  if (!spendTicketFor(teamId)) return;
+
+  wheelSpinning = true;
+  setSpinButtonState(true);
+  setGameMessage('Girando…', '');
+
+  // 1) Elegir el premio según las probabilidades
+  const idx = pickWeightedPrize(team.premios);
+
+  // 2) Calcular a dónde debe girar la ruleta para caer en ese segmento
+  //    (el puntero está arriba; el segmento i ocupa [i*seg, (i+1)*seg])
+  const n = team.premios.length;
+  const seg = 360 / n;
+  const center = idx * seg + seg / 2;
+  const jitter = (Math.random() - 0.5) * (seg - 16);   // no caer justo en la orilla
+  const base = Math.ceil(wheelRotation / 360) * 360;
+
+  wheelRotation = base + 360 * 5 + (360 - center) + jitter;
+
+  const wheel = document.getElementById('prize-wheel');
+
+  if (wheel) {
+    wheel.style.transition = 'transform 4s cubic-bezier(0.12, 0.67, 0.14, 1)';
+    wheel.style.transform = 'rotate(' + wheelRotation + 'deg)';
+  }
+
+  // 3) Al terminar la animación, mostrar el resultado
+  setTimeout(() => {
+
+    const premio = team.premios[idx];
+
+    wheelSpinning = false;
+
+    if (premio.tipo === 'nada') {
+      setGameMessage('😅 Esta vez no hubo suerte. ¡Sigue intentando!', 'lose');
+    } else {
+      if (!wonPrizesByTeam[teamId]) wonPrizesByTeam[teamId] = [];
+
+      wonPrizesByTeam[teamId].push({
+        id: premio.id,
+        icono: premio.icono,
+        descripcion: premio.descripcion,
+        fecha: new Date().toISOString()
+      });
+
+      savePrizesToStorage(wonPrizesByTeam);
+
+      setGameMessage('🎉 ¡Ganaste: ' + premio.descripcion + '!', 'win');
+    }
+
+    renderWonPrizes(teamId);
+    setSpinButtonState(false);
+
+  }, 4200);
+}
 
 // Inicializar los contadores de tickets visibles en pantalla
 updateTicketDisplays();

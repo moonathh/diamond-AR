@@ -229,7 +229,28 @@ const TEAM_TRIVIA = {
 
 };
 
+/* =========================================================
+   PREMIOS DE LA RULETA (probabilidades en %, deben sumar 100)
+   ========================================================= */
 
+const PRIZE_TEMPLATE = [
+  { id: 'nada',   tipo: 'nada',   etiqueta: 'Nada',         nombre: 'Nada',                                probabilidad: 50, icono: '❌' },
+  { id: 'pin',    tipo: 'premio', etiqueta: 'Pin digital',  nombre: 'Pin digital',                         probabilidad: 20, icono: '📍' },
+  { id: 'gorra',  tipo: 'premio', etiqueta: 'Gorra',        nombre: 'Gorra oficial',                       probabilidad: 15, icono: '🧢' },
+  { id: 'poster', tipo: 'premio', etiqueta: 'Póster',       nombre: 'Póster oficial',                      probabilidad: 10, icono: '🖼️' },
+  { id: 'vip',    tipo: 'premio', etiqueta: 'Entradas VIP', nombre: 'Entradas dobles VIP para un partido', probabilidad: 5,  icono: '🎟️' }
+];
+
+function buildPrizes(t) {
+  return PRIZE_TEMPLATE.map((p) => ({
+    id: p.id,
+    tipo: p.tipo,
+    etiqueta: p.etiqueta,
+    icono: p.icono,
+    probabilidad: p.probabilidad,
+    descripcion: p.tipo === 'nada' ? 'Nada' : (p.nombre + ' de ' + t.corto)
+  }));
+}
 
 
 /* =========================================================
@@ -268,7 +289,7 @@ TEAM_LIST.forEach((t) => {
     ],
 
         trivia: TEAM_TRIVIA[t.id] || [],
-    premios: []
+        premios: buildPrizes(t)
   };
 });
 
