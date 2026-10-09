@@ -735,14 +735,33 @@ function renderTeamContent(teamId) {
   if (team && bannerName) bannerName.textContent = team.nombre;
   if (team && bannerIcon) bannerIcon.textContent = team.icono || '⚾';
 
-  /* ---------- Historia ---------- */
+   /* ---------- Historia ---------- */
 
   const histTitle = document.getElementById('history-team-title');
+  const teamSummary = document.getElementById('history-team-summary');
+  const teamTrophies = document.getElementById('history-team-trophies');
+  const leagueSummary = document.getElementById('history-league-summary');
 
   if (histTitle) {
     histTitle.textContent = team
       ? 'Historia de ' + team.nombre
       : 'Historia del equipo (escanea un logo)';
+  }
+
+  if (teamSummary) {
+    teamSummary.textContent = team
+      ? team.historia.resumen
+      : 'Escanea un logo para ver la historia de ese equipo.';
+  }
+
+  if (teamTrophies) {
+    const trophies = team && team.historia.campeonatos;
+    teamTrophies.textContent = trophies ? '🏆 ' + trophies : '';
+    teamTrophies.style.display = trophies ? 'block' : 'none';
+  }
+
+  if (leagueSummary && typeof LIGA_NACIONAL_HISTORIA !== 'undefined') {
+    leagueSummary.textContent = LIGA_NACIONAL_HISTORIA.resumen;
   }
 
   renderTimeline(

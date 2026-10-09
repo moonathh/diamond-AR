@@ -278,6 +278,9 @@
   .prize-item .prize-name{flex:1;}
   .prize-item .prize-count{font-family:'Space Mono',monospace; color:var(--brass-light); font-weight:700;}
 
+    .history-summary{margin:0 20px 12px; font-size:12.5px; line-height:1.55; color:var(--text-dim);}
+  .history-trophies{margin:0 20px 14px; padding:10px 12px; border-radius:12px; background:rgba(242,201,76,0.10); border:1px solid rgba(242,201,76,0.35); color:#F2C94C; font-size:12px; font-weight:600; line-height:1.4;}
+
   /* TRIVIA */
   .trivia-ticket-box{
     margin:0 20px 16px; background:linear-gradient(135deg,#1F4E85,var(--navy-deep)); border:1px solid rgba(200,53,46,0.35);
