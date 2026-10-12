@@ -12,20 +12,20 @@
 
 const TEAM_LIST = [
   { id: 'dodgers',   nombre: 'Los Angeles Dodgers',      corto: 'Dodgers',   colorPrimario: '#005A9C', colorAcento: '#EF3E42', icono: '⚾', modelo: 'assets/pelota.glb' },
-  { id: 'braves',    nombre: 'Atlanta Braves',           corto: 'Braves',    colorPrimario: '#CE1141', colorAcento: '#13274F', icono: '⚾' },
-  { id: 'marlins',   nombre: 'Miami Marlins',            corto: 'Marlins',   colorPrimario: '#00A3E0', colorAcento: '#EF3340', icono: '⚾' },
-  { id: 'mets',      nombre: 'New York Mets',            corto: 'Mets',      colorPrimario: '#002D72', colorAcento: '#FF5910', icono: '⚾' },
-  { id: 'phillies',  nombre: 'Philadelphia Phillies',    corto: 'Phillies',  colorPrimario: '#E81828', colorAcento: '#002D72', icono: '⚾' },
-  { id: 'nationals', nombre: 'Washington Nationals',     corto: 'Nationals', colorPrimario: '#AB0003', colorAcento: '#14225A', icono: '⚾' },
-  { id: 'cubs',      nombre: 'Chicago Cubs',             corto: 'Cubs',      colorPrimario: '#0E3386', colorAcento: '#CC3433', icono: '⚾' },
-  { id: 'reds',      nombre: 'Cincinnati Reds',          corto: 'Reds',      colorPrimario: '#C6011F', colorAcento: '#000000', icono: '⚾' },
-  { id: 'brewers',   nombre: 'Milwaukee Brewers',        corto: 'Brewers',   colorPrimario: '#12284B', colorAcento: '#FFC52F', icono: '⚾' },
-  { id: 'pirates',   nombre: 'Pittsburgh Pirates',       corto: 'Pirates',   colorPrimario: '#FDB827', colorAcento: '#27251F', icono: '⚾' },
-  { id: 'cardinals', nombre: 'St. Louis Cardinals',      corto: 'Cardinals', colorPrimario: '#C41E3A', colorAcento: '#0C2340', icono: '⚾' },
-  { id: 'dbacks',    nombre: 'Arizona Diamondbacks',     corto: 'D-backs',   colorPrimario: '#A71930', colorAcento: '#000000', icono: '⚾' },
-  { id: 'rockies',   nombre: 'Colorado Rockies',         corto: 'Rockies',   colorPrimario: '#333366', colorAcento: '#C4CED4', icono: '⚾' },
-  { id: 'padres',    nombre: 'San Diego Padres',         corto: 'Padres',    colorPrimario: '#2F241D', colorAcento: '#FFC425', icono: '⚾' },
-  { id: 'giants',    nombre: 'San Francisco Giants',     corto: 'Giants',    colorPrimario: '#FD5A1E', colorAcento: '#27251F', icono: '⚾' }
+  { id: 'braves',    nombre: 'Atlanta Braves',           corto: 'Braves',    colorPrimario: '#CE1141', colorAcento: '#13274F', icono: '⚾', modelo: 'assets/pelotabanda.glb' },
+  { id: 'marlins',   nombre: 'Miami Marlins',            corto: 'Marlins',   colorPrimario: '#00A3E0', colorAcento: '#EF3340', icono: '⚾', modelo: 'assets/pelotapin.glb' },
+  { id: 'mets',      nombre: 'New York Mets',            corto: 'Mets',      colorPrimario: '#002D72', colorAcento: '#FF5910', icono: '⚾', modelo: 'assets/bate.glb' },
+  { id: 'phillies',  nombre: 'Philadelphia Phillies',    corto: 'Phillies',  colorPrimario: '#E81828', colorAcento: '#002D72', icono: '⚾', modelo: 'assets/bategorra.glb' },
+  { id: 'nationals', nombre: 'Washington Nationals',     corto: 'Nationals', colorPrimario: '#AB0003', colorAcento: '#14225A', icono: '⚾', modelo: 'assets/batepin.glb' },
+  { id: 'cubs',      nombre: 'Chicago Cubs',             corto: 'Cubs',      colorPrimario: '#0E3386', colorAcento: '#CC3433', icono: '⚾', modelo: 'assets/conejobanda.glb' },
+  { id: 'reds',      nombre: 'Cincinnati Reds',          corto: 'Reds',      colorPrimario: '#C6011F', colorAcento: '#000000', icono: '⚾', modelo: 'assets/conejopin.glb' },
+  { id: 'brewers',   nombre: 'Milwaukee Brewers',        corto: 'Brewers',   colorPrimario: '#12284B', colorAcento: '#FFC52F', icono: '⚾', modelo: 'assets/conejogorra.glb' },
+  { id: 'pirates',   nombre: 'Pittsburgh Pirates',       corto: 'Pirates',   colorPrimario: '#FDB827', colorAcento: '#27251F', icono: '⚾', modelo: 'assets/diamantebanda.glb' },
+  { id: 'cardinals', nombre: 'St. Louis Cardinals',      corto: 'Cardinals', colorPrimario: '#C41E3A', colorAcento: '#0C2340', icono: '⚾', modelo: 'assets/diamantegorra.glb' },
+  { id: 'dbacks',    nombre: 'Arizona Diamondbacks',     corto: 'D-backs',   colorPrimario: '#A71930', colorAcento: '#000000', icono: '⚾', modelo: 'assets/diamantepin.glb' },
+  { id: 'rockies',   nombre: 'Colorado Rockies',         corto: 'Rockies',   colorPrimario: '#333366', colorAcento: '#C4CED4', icono: '⚾', modelo: 'assets/guantebanda.glb' },
+  { id: 'padres',    nombre: 'San Diego Padres',         corto: 'Padres',    colorPrimario: '#2F241D', colorAcento: '#FFC425', icono: '⚾', modelo: 'assets/guantegorra.glb' },
+  { id: 'giants',    nombre: 'San Francisco Giants',     corto: 'Giants',    colorPrimario: '#FD5A1E', colorAcento: '#27251F', icono: '⚾', modelo: 'assets/guantepin.glb' }
 ];
 
 
