@@ -362,7 +362,8 @@ function initModelViewer() {
   let modelRoot = null;
   let currentModelPath = null;
 
-
+  const MODEL_TARGET_SIZE = 1.9;   // antes 1.5 (más grande)
+  const MODEL_Y_OFFSET = 0;        // 0 = centrado; negativo = más abajo, positivo = más arriba
   /* -------------------------------------------------------
      REDIMENSIONAR
      ------------------------------------------------------- */
@@ -453,84 +454,50 @@ function initModelViewer() {
 
       path,
 
-      (gltf) => {
+            (gltf) => {
 
         if (modelRoot) {
           scene.remove(modelRoot);
         }
 
-        modelRoot = gltf.scene;
+        const model = gltf.scene;
         currentModelPath = path;
 
-        console.log(
-          '[Visor3D] modelo .glb cargado correctamente:',
-          path
-        );
+        console.log('[Visor3D] modelo .glb cargado correctamente:', path);
 
-        modelRoot.traverse(
-          (object) => {
-
-            if (object.isMesh) {
-
-              object.visible = true;
-
-              object.frustumCulled = false;
-
-            }
+        model.traverse((object) => {
+          if (object.isMesh) {
+            object.visible = true;
+            object.frustumCulled = false;
           }
-        );
+        });
 
-        const box =
-          new THREE.Box3().setFromObject(
-            modelRoot
-          );
-
-        const size =
-          new THREE.Vector3();
+        // Medir el modelo tal como viene de Blender
+        const box = new THREE.Box3().setFromObject(model);
+        const size = new THREE.Vector3();
+        const center = new THREE.Vector3();
 
         box.getSize(size);
-
-        const center =
-          new THREE.Vector3();
-
         box.getCenter(center);
 
-        console.log(
-          '[Visor3D] tamaño original:',
-          size
-        );
+        const maxDim = Math.max(size.x, size.y, size.z) || 1;
+        const scale = MODEL_TARGET_SIZE / maxDim;
 
-        const maxDim = Math.max(
-          size.x,
-          size.y,
-          size.z
-        ) || 1;
+        // Centrar respecto a SU CENTRO (no a su origen de Blender)
+        model.position.sub(center);
 
-        const targetSize = 1.5;
-
-        const scale =
-          targetSize / maxDim;
-
-        modelRoot.position.sub(center);
-
-        modelRoot.scale.setScalar(
-          scale
-        );
-
-        modelRoot.position.x = 0;
-        modelRoot.position.y = -0.38;
-        modelRoot.position.z = 0;
-
+        // El grupo pivote es el que se escala, se mueve y gira
+        modelRoot = new THREE.Group();
+        modelRoot.add(model);
+        modelRoot.scale.setScalar(scale);
+        modelRoot.position.set(0, MODEL_Y_OFFSET, 0);
         modelRoot.rotation.y = -Math.PI / 2;
 
         scene.add(modelRoot);
 
-        console.log(
-          '[Visor3D] modelo listo y centrado'
-        );
+        console.log('[Visor3D] modelo listo y centrado');
 
         resize();
-
       },
 
       undefined,
