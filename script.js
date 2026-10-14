@@ -24,6 +24,12 @@ function go(name) {
     if (name === 'game') {
     renderGame(currentTeamId);
   }
+
+    if (name === 'stats') {
+    startStatsLive(currentTeamId);
+  } else {
+    stopStatsLive();
+  }
 }
 
 /* =========================================================
@@ -766,31 +772,9 @@ function renderTeamContent(teamId) {
     }
   }
 
-  /* ---------- Stats ---------- */
+  /* ----------   /* ---------- Stats ---------- */
 
-  const statsList = document.getElementById('stats-list');
-
-  if (statsList) {
-    statsList.innerHTML = '';
-
-    if (team && team.stats && team.stats.length) {
-      const card = document.createElement('div');
-      card.className = 'stat-card';
-
-      team.stats.forEach((s) => {
-        card.innerHTML +=
-          '<div class="stat-row"><div class="stat-name">' + s.nombre +
-          '</div><div class="stat-val">' + s.valor + '</div></div>' +
-          '<div class="bar-bg"><div class="bar-fill" style="width:' +
-          (s.pct || 0) + '%"></div></div>';
-      });
-
-      statsList.appendChild(card);
-    } else {
-      statsList.innerHTML =
-        '<div class="gal-empty">Escanea un logo para ver las estadísticas del equipo.</div>';
-    }
-  }
+  renderStats(teamId);
 
   /* ---------- Galería ---------- */
 
@@ -1429,6 +1413,345 @@ function spinWheel() {
 
   }, 4200);
 }
+
+
+/* =========================================================
+   ESTADÍSTICAS EN TIEMPO REAL (API pública de MLB)
+   ========================================================= */
+
+const MLB_API = 'https://statsapi.mlb.com/api/v1';
+const STATS_REFRESH_MS = 60000;
+const STATS_CACHE_KEY = 'diamondAR_stats';
+
+// id del equipo dentro de la API de MLB
+const MLB_TEAM_IDS = {
+  dodgers: 119, braves: 144, marlins: 146, mets: 121, phillies: 143,
+  nationals: 120, cubs: 112, reds: 113, brewers: 158, pirates: 134,
+  cardinals: 138, dbacks: 109, rockies: 115, padres: 135, giants: 137
+};
+
+const NL_DIVISIONS = { 203: 'NL Oeste', 204: 'NL Este', 205: 'NL Central' };
+
+let statsTimer = null;
+let statsRequestId = 0;
+
+function escapeHTML(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+/* ---------- caché local (último dato bueno por equipo) ---------- */
+
+function loadStatsCache() {
+  try {
+    return JSON.parse(localStorage.getItem(STATS_CACHE_KEY)) || {};
+  } catch (err) {
+    return {};
+  }
+}
+
+function getStatsCache(teamId) {
+  return loadStatsCache()[teamId] || null;
+}
+
+function saveStatsCache(teamId, payload) {
+  try {
+    const all = loadStatsCache();
+    all[teamId] = payload;
+    localStorage.setItem(STATS_CACHE_KEY, JSON.stringify(all));
+  } catch (err) {
+    console.warn('[Stats] No se pudo guardar la caché:', err);
+  }
+}
+
+/* ---------- llamadas a la API ---------- */
+
+async function fetchJSON(url, timeoutMs) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs || 8000);
+
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Usa la temporada actual; si todavía no tiene juegos (ej. en enero),
+// cae a la temporada anterior.
+async function loadStandings() {
+  const year = new Date().getFullYear();
+  let lastError = null;
+
+  for (const season of [year, year - 1]) {
+    try {
+      const data = await fetchJSON(
+        MLB_API + '/standings?leagueId=104&season=' + season +
+        '&standingsTypes=regularSeason'
+      );
+
+      const records = data.records || [];
+      const hasGames = records.some((r) =>
+        (r.teamRecords || []).some((t) => (t.wins + t.losses) > 0)
+      );
+
+      if (hasGames) return { season: season, records: records };
+
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error('Sin datos de posiciones');
+}
+
+function parseStanding(records, mlbId) {
+  for (const div of records) {
+    for (const tr of (div.teamRecords || [])) {
+
+      if (!tr.team || tr.team.id !== mlbId) continue;
+
+      const splits = (tr.records && tr.records.splitRecords) || [];
+      const last10 = splits.find((s) => s.type === 'lastTen');
+      const runDiff = Number(tr.runDifferential);
+
+      return {
+        wins: tr.wins,
+        losses: tr.losses,
+        pct: tr.winningPercentage,
+        divisionName: NL_DIVISIONS[div.division && div.division.id] || 'su división',
+        divisionRank: tr.divisionRank,
+        gamesBack: tr.gamesBack,
+        streak: (tr.streak && tr.streak.streakCode) || null,
+        lastTen: last10 ? (last10.wins + '-' + last10.losses) : null,
+        runDiff: (tr.runDifferential == null || isNaN(runDiff)) ? null : runDiff
+      };
+    }
+  }
+
+  return null;
+}
+
+function firstStat(resp) {
+  const group = resp && resp.stats && resp.stats[0];
+  const split = group && group.splits && group.splits[0];
+
+  return (split && split.stat) || null;
+}
+
+// Bateo y pitcheo son "extras": si fallan, igual se muestran las posiciones.
+async function loadTeamStats(mlbId, season) {
+  const base = MLB_API + '/teams/' + mlbId + '/stats?stats=season&season=' + season + '&group=';
+
+  const [hit, pit] = await Promise.allSettled([
+    fetchJSON(base + 'hitting'),
+    fetchJSON(base + 'pitching')
+  ]);
+
+  const h = (hit.status === 'fulfilled' && firstStat(hit.value)) || {};
+  const p = (pit.status === 'fulfilled' && firstStat(pit.value)) || {};
+
+  return {
+    hitting: { avg: h.avg, homeRuns: h.homeRuns, ops: h.ops },
+    pitching: { era: p.era, strikeOuts: p.strikeOuts, whip: p.whip }
+  };
+}
+
+/* ---------- dibujar en pantalla ---------- */
+
+function formatStatsTime(ms) {
+  return new Date(ms).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatStreak(code) {
+  const m = /^([WL])(\d+)/.exec(code || '');
+
+  if (!m) return null;
+
+  return (m[1] === 'W' ? 'Ganó ' : 'Perdió ') + m[2];
+}
+
+function statLine(label, value) {
+  const v = (value == null || value === '') ? '—' : value;
+
+  return '<div class="stats-line"><span>' + escapeHTML(label) +
+         '</span><b>' + escapeHTML(v) + '</b></div>';
+}
+
+function statTile(label, value) {
+  const v = (value == null || value === '') ? '—' : value;
+
+  return '<div class="stat-tile"><div class="st-label">' + escapeHTML(label) +
+         '</div><div class="st-val">' + escapeHTML(v) + '</div></div>';
+}
+
+function buildStatsHTML(team, payload, status) {
+  const s = payload.standing;
+  const pctNum = parseFloat(s.pct);
+  const pctWidth = isNaN(pctNum) ? 0 : Math.round(pctNum * 100);
+  const rank = s.divisionRank ? (s.divisionRank + '.º') : '—';
+  const isLeader = s.gamesBack === '-' || s.gamesBack === '0' || s.gamesBack === '0.0';
+  const diff = s.runDiff == null ? null : ((s.runDiff > 0 ? '+' : '') + s.runDiff);
+
+  let statusHTML;
+
+  if (status === 'live') {
+    statusHTML = '<span class="stats-dot"></span>En vivo · Temporada ' + payload.season +
+                 ' · actualizado ' + formatStatsTime(payload.savedAt);
+  } else if (status === 'offline') {
+    statusHTML = '<span class="stats-dot err"></span>Sin conexión · datos guardados de las ' +
+                 formatStatsTime(payload.savedAt) + ' (Temporada ' + payload.season + ')';
+  } else {
+    statusHTML = '<span class="stats-dot off"></span>Datos guardados de las ' +
+                 formatStatsTime(payload.savedAt) + ' · actualizando…';
+  }
+
+  const h = payload.hitting || {};
+  const p = payload.pitching || {};
+
+  return (
+    '<div class="stats-status">' + statusHTML + '</div>' +
+
+    '<div class="stats-hero">' +
+      '<div class="sh-team">' + escapeHTML(team ? team.nombre : '') + '</div>' +
+      '<div class="sh-record">' + escapeHTML(s.wins) + '-' + escapeHTML(s.losses) + '</div>' +
+      '<div class="sh-sub">' + escapeHTML(s.pct || '—') + ' · ' + rank + ' en ' + escapeHTML(s.divisionName) + '</div>' +
+      '<div class="stats-bar"><div style="width:' + pctWidth + '%"></div></div>' +
+    '</div>' +
+
+    '<div class="stats-grid">' +
+      statTile('Juegos atrás', isLeader ? 'Líder' : s.gamesBack) +
+      statTile('Racha', formatStreak(s.streak)) +
+      statTile('Últimos 10', s.lastTen) +
+      statTile('Dif. de carreras', diff) +
+    '</div>' +
+
+    '<div class="stats-block"><h3>Bateo</h3>' +
+      statLine('Promedio', h.avg) +
+      statLine('Jonrones', h.homeRuns) +
+      statLine('OPS', h.ops) +
+    '</div>' +
+
+    '<div class="stats-block"><h3>Pitcheo</h3>' +
+      statLine('Efectividad (ERA)', p.era) +
+      statLine('Ponches', p.strikeOuts) +
+      statLine('WHIP', p.whip) +
+    '</div>'
+  );
+}
+
+function renderStatsMessage(text) {
+  const el = document.getElementById('stats-list');
+
+  if (el) {
+    el.innerHTML = '<div class="gal-empty">' + escapeHTML(text) + '</div>';
+  }
+}
+
+function renderStatsView(teamId, payload, status) {
+  const el = document.getElementById('stats-list');
+  const team = (typeof TEAMS_DATA !== 'undefined') ? TEAMS_DATA[teamId] : null;
+
+  if (el) {
+    el.innerHTML = buildStatsHTML(team, payload, status);
+  }
+}
+
+// Dibuja lo que ya se tiene (caché o mensaje), SIN llamar a la red
+function renderStats(teamId) {
+
+  if (!teamId) {
+    // Si la pantalla Stats está en vivo, no la borres
+    if (statsTimer) return;
+
+    renderStatsMessage('Escanea un logo para ver las estadísticas de ese equipo.');
+    return;
+  }
+
+  const cached = getStatsCache(teamId);
+
+  if (cached) {
+    renderStatsView(teamId, cached, 'saved');
+  } else {
+    renderStatsMessage('Escanea y abre Stats para cargar las estadísticas.');
+  }
+}
+
+/* ---------- refresco en vivo ---------- */
+
+async function refreshStats(teamId) {
+  const mlbId = MLB_TEAM_IDS[teamId];
+
+  if (!mlbId) return;
+
+  const myRequest = ++statsRequestId;
+
+  try {
+    const st = await loadStandings();
+    const standing = parseStanding(st.records, mlbId);
+
+    if (!standing) throw new Error('Equipo no encontrado en las posiciones');
+
+    const extra = await loadTeamStats(mlbId, st.season);
+
+    // Si el usuario ya salió de la pantalla, descartar este resultado
+    if (myRequest !== statsRequestId) return;
+
+    const payload = {
+      season: st.season,
+      savedAt: Date.now(),
+      standing: standing,
+      hitting: extra.hitting,
+      pitching: extra.pitching
+    };
+
+    saveStatsCache(teamId, payload);
+    renderStatsView(teamId, payload, 'live');
+
+  } catch (err) {
+    console.warn('[Stats] No se pudieron cargar:', err);
+
+    if (myRequest !== statsRequestId) return;
+
+    const cached = getStatsCache(teamId);
+
+    if (cached) {
+      renderStatsView(teamId, cached, 'offline');
+    } else {
+      renderStatsMessage('No se pudieron cargar las estadísticas. Revisa tu conexión e inténtalo de nuevo.');
+    }
+  }
+}
+
+function startStatsLive(teamId) {
+  stopStatsLive();
+
+  if (!teamId) {
+    renderStats(null);
+    return;
+  }
+
+  renderStats(teamId);
+  refreshStats(teamId);
+
+  statsTimer = setInterval(() => refreshStats(teamId), STATS_REFRESH_MS);
+}
+
+function stopStatsLive() {
+  if (statsTimer) {
+    clearInterval(statsTimer);
+    statsTimer = null;
+  }
+
+  // invalida cualquier consulta que siga en camino
+  statsRequestId++;
+}
+
 
 // Inicializar los contadores de tickets visibles en pantalla
 updateTicketDisplays();
