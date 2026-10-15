@@ -484,7 +484,36 @@ const TEAM_HISTORY = {
 
 };
 
+/* =========================================================
+   GIFS POR EQUIPO (4 por equipo)
+   ========================================================= */
 
+const GIFS_POR_EQUIPO = {
+  dodgers:   { carpeta: 'LA',           archivos: ['gifLA.gif', 'gifLA2.gif', 'gifLA3.gif', 'gifLA4.gif'] },
+  braves:    { carpeta: 'Braves',       archivos: ['gifBR.gif', 'gifBR2.gif', 'gifBR3.gif', 'gifBR4.gif'] },
+  marlins:   { carpeta: 'Marlins',      archivos: ['gifMA.gif', 'gifMA2.gif', 'gifMA3.gif', 'gifMA4.gif'] },
+  mets:      { carpeta: 'Mets',         archivos: ['gifME.gif', 'gifME2.gif', 'gifME3.gif', 'gifME4.gif'] },
+  phillies:  { carpeta: 'Phillies',     archivos: ['gifPH.gif', 'gifPH2.gif', 'gifPH3.gif', 'gifPH4.gif'] },
+  nationals: { carpeta: 'Nationals',    archivos: ['gifNA.gif', 'gifNA2.gif', 'gifNA3.gif', 'gifNA4.gif'] },
+  cubs:      { carpeta: 'Cubs',         archivos: ['gifCU.gif', 'gifCU2.gif', 'gifCU3.gif', 'gifCU4.gif'] },
+  reds:      { carpeta: 'Reds',         archivos: ['gifRE.gif', 'gifRE2.gif', 'gifRE3.gif', 'gifRE4.gif'] },
+  brewers:   { carpeta: 'Brewers',      archivos: ['gifBRE.gif', 'gifBRE2.gif', 'gifBRE3.gif', 'gifBRE4.gif'] },
+  pirates:   { carpeta: 'Pirates',      archivos: ['gifPI.gif', 'gifPI2.gif', 'gifPI3.gif', 'gifPI4.gif'] },
+  cardinals: { carpeta: 'Cardinals',    archivos: ['gifCA.gif', 'gifCA2.gif', 'gifCA3.gif', 'gifCA4.gif'] },
+  dbacks:    { carpeta: 'Diamondbacks', archivos: ['gifDB.gif', 'gifDB2.gif', 'gifDB3.gif', 'gifDB4.gif'] },
+  rockies:   { carpeta: 'Rockies',      archivos: ['gifRO.gif', 'gifRO2.gif', 'gifRO3.gif', 'gifRO4.gif'] },
+  padres:    { carpeta: 'Padres',       archivos: ['gifsPAD.gif', 'gifsPAD2.gif', 'gifsPAD3.gif', 'gifsPAD4.gif'] },
+  giants:    { carpeta: 'Giants',       archivos: ['gifGIA.gif', 'gifGIA2.gif', 'gifGIA3.gif', 'gifGIA4.gif'] }
+};
+
+function buildVideos(t) {
+  const g = GIFS_POR_EQUIPO[t.id];
+  if (!g) return [];
+  return g.archivos.map((archivo, i) => ({
+    titulo: 'Video ' + (i + 1) + ' · ' + t.corto,
+    src: 'gifs/' + g.carpeta + '/' + archivo
+  }));
+}
 
 /* =========================================================
    GENERAR TEAMS_DATA A PARTIR DE TEAM_LIST
@@ -504,10 +533,7 @@ TEAM_LIST.forEach((t) => {
 
     historia: TEAM_HISTORY[t.id],
 
-    videos: [
-      { titulo: 'Video pendiente 1 de ' + t.corto, duracion: '0:00' },
-      { titulo: 'Video pendiente 2 de ' + t.corto, duracion: '0:00' }
-    ],
+    videos: buildVideos(t),
 
     stats: [
       { nombre: 'Victorias', valor: '--', pct: 0 },

@@ -757,13 +757,14 @@ function renderTeamContent(teamId) {
     videoList.innerHTML = '';
 
     if (team && team.videos && team.videos.length) {
-      team.videos.forEach((v) => {
+        team.videos.forEach((v) => {
         const card = document.createElement('div');
         card.className = 'video-card';
         card.innerHTML =
-          '<div class="video-thumb vt"><span class="play">▶</span></div>' +
-          '<div class="video-meta"><div class="t">' + v.titulo + '</div>' +
-          '<div class="d">' + (v.duracion || '') + '</div></div>';
+          '<div class="video-thumb vt video-gif">' +
+            '<img src="' + v.src + '" alt="' + v.titulo + '" loading="lazy">' +
+          '</div>' +
+          '<div class="video-meta"><div class="t">' + v.titulo + '</div></div>';
         videoList.appendChild(card);
       });
     } else {

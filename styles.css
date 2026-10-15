@@ -230,6 +230,12 @@
   .video-meta{padding:12px 14px;}
   .video-meta .t{color:var(--white); font-weight:600; font-size:13px; margin-bottom:2px;}
   .video-meta .d{color:var(--text-dim); font-size:11px;}
+    .video-thumb.video-gif{
+    height:auto; min-height:130px; background:#000; display:block;
+  }
+  .video-thumb.video-gif img{
+    width:100%; height:auto; display:block;
+  }
 
   /* STATS */
   .stat-card{margin:0 20px 12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:14px 16px;}
