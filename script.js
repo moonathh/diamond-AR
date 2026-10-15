@@ -200,22 +200,12 @@ function setARFilter(el, cls) {
 }
 
 function setVFilter(el, cls) {
-
   if (!el || !el.parentElement) return;
+  if (!selectedVideo) return; // primero hay que seleccionar un video
 
-  el.parentElement
-    .querySelectorAll('.filter-chip')
-    .forEach(c => {
-      c.classList.remove('active');
-    });
-
-  el.classList.add('active');
-
-  document
-    .querySelectorAll('.vt')
-    .forEach(v => {
-      v.style.filter = filterCss(cls);
-    });
+  syncVideoChips(cls);
+  selectedVideo.dataset.filter = cls;
+  updateVideoView(selectedVideo);
 }
 
 function filterCss(cls) {
@@ -237,6 +227,157 @@ function filterCss(cls) {
     default:
       return 'none';
   }
+}
+
+
+/* =========================================================
+   VIDEOS (GIFs): selección, reproducción y filtros
+   ========================================================= */
+
+const PIXEL_BLOCK = 8;                       // más grande = más pixelado
+const VIDEO_FILTERS = ['', 'f-blur', 'f-pixel', 'f-thermal', 'f-pastel']; // mismo orden que los chips
+let selectedVideo = null;
+let pixelRAF = null;
+
+function syncVideoChips(cls) {
+  const chips = document.querySelectorAll('#screen-video .filter-chip');
+  chips.forEach((c, i) => c.classList.toggle('active', VIDEO_FILTERS[i] === (cls || '')));
+}
+
+function drawVideoFrame(card) {
+  const src = card._playing ? card._img : card._frame;
+  if (!src) return;
+  const w = src.naturalWidth || src.width;
+  const h = src.naturalHeight || src.height;
+  if (!w || !h) return;
+
+  const pixel = card.dataset.filter === 'f-pixel';
+  const cw = pixel ? Math.max(1, Math.round(w / PIXEL_BLOCK)) : w;
+  const ch = pixel ? Math.max(1, Math.round(h / PIXEL_BLOCK)) : h;
+  const cv = card._canvas;
+
+  if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
+  cv.getContext('2d').drawImage(src, 0, 0, cw, ch);
+}
+
+function pixelLoop() {
+  if (!selectedVideo || !selectedVideo._playing || selectedVideo.dataset.filter !== 'f-pixel') {
+    pixelRAF = null;
+    return;
+  }
+  drawVideoFrame(selectedVideo);
+  pixelRAF = requestAnimationFrame(pixelLoop);
+}
+
+function updateVideoView(card) {
+  const pixel = card.dataset.filter === 'f-pixel';
+  const thumb = card.querySelector('.vt');
+
+  card.classList.toggle('playing', !!card._playing);
+  card.classList.toggle('pixel', pixel);
+  thumb.style.filter = pixel
+    ? 'contrast(1.15) saturate(1.2)'
+    : filterCss(card.dataset.filter || '');
+
+  drawVideoFrame(card);
+
+  if (card._playing && pixel && !pixelRAF) {
+    pixelRAF = requestAnimationFrame(pixelLoop);
+  }
+}
+
+function setVideoPlaying(card, play) {
+  const img = card._img;
+
+  if (play) {
+    img.removeAttribute('src');   // reinicia el GIF desde el inicio
+    img.src = card._src;
+    card._playing = true;
+  } else {
+    // congelar el fotograma actual
+    if (img.naturalWidth) {
+      const snap = document.createElement('canvas');
+      snap.width = img.naturalWidth;
+      snap.height = img.naturalHeight;
+      snap.getContext('2d').drawImage(img, 0, 0);
+      card._frame = snap;
+    }
+    card._playing = false;
+  }
+}
+
+function selectVideo(card) {
+  if (selectedVideo && selectedVideo !== card) {
+    const prev = selectedVideo;
+    prev.classList.remove('selected');
+    if (prev._playing) setVideoPlaying(prev, false);
+    updateVideoView(prev);
+  }
+  selectedVideo = card;
+  card.classList.add('selected');
+  syncVideoChips(card.dataset.filter);
+}
+
+function renderVideoCards(container, videos) {
+  selectedVideo = null;
+  if (pixelRAF) { cancelAnimationFrame(pixelRAF); pixelRAF = null; }
+  syncVideoChips('');
+
+  const hint = document.createElement('div');
+  hint.className = 'video-hint';
+  hint.textContent = 'Toca un video para seleccionarlo y reproducirlo. Los filtros se aplican solo al video seleccionado.';
+  container.appendChild(hint);
+
+  // Carga el primer fotograma solo cuando la tarjeta está cerca de verse
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      io.unobserve(e.target);
+      const card = e.target;
+      const poster = new Image();
+      poster.onload = () => {
+        if (!card._frame) card._frame = poster;
+        card.querySelector('.vt').style.aspectRatio =
+          poster.naturalWidth + ' / ' + poster.naturalHeight;
+        drawVideoFrame(card);
+      };
+      poster.src = card._src;
+    });
+  }, { rootMargin: '200px' });
+
+  videos.forEach((v) => {
+    const card = document.createElement('div');
+    card.className = 'video-card';
+    card.dataset.filter = '';
+    card._src = v.src;
+    card._playing = false;
+    card._frame = null;
+
+    card.innerHTML =
+      '<div class="video-thumb vt video-gif">' +
+        '<img class="gif-live" alt="">' +
+        '<canvas class="gif-canvas"></canvas>' +
+        '<span class="play">▶</span>' +
+      '</div>' +
+      '<div class="video-meta"><div class="t"></div></div>';
+
+    card.querySelector('.t').textContent = v.titulo;
+    card._img = card.querySelector('.gif-live');
+    card._canvas = card.querySelector('.gif-canvas');
+
+    card.addEventListener('click', () => {
+      if (selectedVideo === card) {
+        setVideoPlaying(card, !card._playing);
+      } else {
+        selectVideo(card);
+        setVideoPlaying(card, true);
+      }
+      updateVideoView(card);
+    });
+
+    container.appendChild(card);
+    io.observe(card);
+  });
 }
 
 
@@ -756,17 +897,8 @@ function renderTeamContent(teamId) {
   if (videoList) {
     videoList.innerHTML = '';
 
-    if (team && team.videos && team.videos.length) {
-        team.videos.forEach((v) => {
-        const card = document.createElement('div');
-        card.className = 'video-card';
-        card.innerHTML =
-          '<div class="video-thumb vt video-gif">' +
-            '<img src="' + v.src + '" alt="' + v.titulo + '" loading="lazy">' +
-          '</div>' +
-          '<div class="video-meta"><div class="t">' + v.titulo + '</div></div>';
-        videoList.appendChild(card);
-      });
+      if (team && team.videos && team.videos.length) {
+      renderVideoCards(videoList, team.videos);
     } else {
       videoList.innerHTML =
         '<div class="gal-empty">Escanea un logo para ver los videos del equipo.</div>';

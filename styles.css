@@ -230,12 +230,30 @@
   .video-meta{padding:12px 14px;}
   .video-meta .t{color:var(--white); font-weight:600; font-size:13px; margin-bottom:2px;}
   .video-meta .d{color:var(--text-dim); font-size:11px;}
-    .video-thumb.video-gif{
-    height:auto; min-height:130px; background:#000; display:block;
+     .video-thumb.video-gif{
+    display:block; position:relative; width:100%; height:auto;
+    aspect-ratio:16/9; min-height:130px; background:#000; cursor:pointer;
   }
-  .video-thumb.video-gif img{
-    width:100%; height:auto; display:block;
+  .video-gif .gif-live,
+  .video-gif .gif-canvas{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
   }
+  /* pausado: se ve el canvas (fotograma congelado) */
+  .video-card:not(.playing) .gif-live{visibility:hidden;}
+  /* reproduciendo sin pixelado: se ve el GIF directo */
+  .video-card.playing:not(.pixel) .gif-canvas{visibility:hidden;}
+  /* pixelado real */
+  .video-card.pixel .gif-canvas{image-rendering:pixelated;}
+
+  .video-gif .play{
+    top:50%; left:50%; transform:translate(-50%,-50%);
+    transition:opacity .2s; pointer-events:none; z-index:2;
+  }
+  .video-card.playing .play{opacity:0;}
+
+  .video-card{transition:box-shadow .2s, border-color .2s;}
+  .video-card.selected{border-color:#F2C14E; box-shadow:0 0 0 2px rgba(242,193,78,.45);}
+  .video-hint{margin:0 20px 12px; color:var(--text-dim); font-size:11px;}
 
   /* STATS */
   .stat-card{margin:0 20px 12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:14px 16px;}
