@@ -89,6 +89,12 @@ async function startAR() {
         throw new Error('Sistema MindAR no disponible');
       }
 
+      // Precargar los modelos 3D mientras arranca la cámara
+      const viewer = initModelViewer();
+      if (viewer && typeof TEAM_LIST !== 'undefined') {
+        viewer.preloadModels(TEAM_LIST.map((t) => t.modelo));
+      }
+
       await system.start();
 
       arRunning = true;
@@ -224,6 +230,9 @@ function filterCss(cls) {
     case 'f-pastel':
       return 'saturate(0.6) brightness(1.2)';
 
+    case 'f-vivid':
+      return 'saturate(2) contrast(1.15)';
+
     default:
       return 'none';
   }
@@ -234,56 +243,33 @@ function filterCss(cls) {
    VIDEOS (GIFs): selección, reproducción y filtros
    ========================================================= */
 
-const PIXEL_BLOCK = 8;                       // más grande = más pixelado
-const VIDEO_FILTERS = ['', 'f-blur', 'f-pixel', 'f-thermal', 'f-pastel']; // mismo orden que los chips
 let selectedVideo = null;
-let pixelRAF = null;
 
+// Marca el chip activo leyendo el filtro de su onclick (no depende del orden)
 function syncVideoChips(cls) {
-  const chips = document.querySelectorAll('#screen-video .filter-chip');
-  chips.forEach((c, i) => c.classList.toggle('active', VIDEO_FILTERS[i] === (cls || '')));
+  document.querySelectorAll('#screen-video .filter-chip').forEach((c) => {
+    const m = /setVFilter\(this,\s*'([^']*)'\)/.exec(c.getAttribute('onclick') || '');
+    c.classList.toggle('active', !!m && m[1] === (cls || ''));
+  });
 }
 
 function drawVideoFrame(card) {
-  const src = card._playing ? card._img : card._frame;
+  const src = card._frame || card._img;
   if (!src) return;
+
   const w = src.naturalWidth || src.width;
   const h = src.naturalHeight || src.height;
   if (!w || !h) return;
 
-  const pixel = card.dataset.filter === 'f-pixel';
-  const cw = pixel ? Math.max(1, Math.round(w / PIXEL_BLOCK)) : w;
-  const ch = pixel ? Math.max(1, Math.round(h / PIXEL_BLOCK)) : h;
   const cv = card._canvas;
-
-  if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
-  cv.getContext('2d').drawImage(src, 0, 0, cw, ch);
-}
-
-function pixelLoop() {
-  if (!selectedVideo || !selectedVideo._playing || selectedVideo.dataset.filter !== 'f-pixel') {
-    pixelRAF = null;
-    return;
-  }
-  drawVideoFrame(selectedVideo);
-  pixelRAF = requestAnimationFrame(pixelLoop);
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  cv.getContext('2d').drawImage(src, 0, 0, w, h);
 }
 
 function updateVideoView(card) {
-  const pixel = card.dataset.filter === 'f-pixel';
-  const thumb = card.querySelector('.vt');
-
   card.classList.toggle('playing', !!card._playing);
-  card.classList.toggle('pixel', pixel);
-  thumb.style.filter = pixel
-    ? 'contrast(1.15) saturate(1.2)'
-    : filterCss(card.dataset.filter || '');
-
+  card.querySelector('.vt').style.filter = filterCss(card.dataset.filter || '');
   drawVideoFrame(card);
-
-  if (card._playing && pixel && !pixelRAF) {
-    pixelRAF = requestAnimationFrame(pixelLoop);
-  }
 }
 
 function setVideoPlaying(card, play) {
@@ -320,7 +306,6 @@ function selectVideo(card) {
 
 function renderVideoCards(container, videos) {
   selectedVideo = null;
-  if (pixelRAF) { cancelAnimationFrame(pixelRAF); pixelRAF = null; }
   syncVideoChips('');
 
   const hint = document.createElement('div');
@@ -582,87 +567,144 @@ function initModelViewer() {
      CARGAR .GLB (reutilizable por equipo)
      ------------------------------------------------------- */
 
+  const modelCache = {};     // ruta -> THREE.Group ya centrado y escalado
+  const modelPending = {};   // ruta -> Promise de una carga en curso
+  let loadToken = 0;         // identifica la solicitud más reciente
+  let requestedPath = null;  // último modelo solicitado
+
+  function buildModelRoot(gltf) {
+
+    const model = gltf.scene;
+
+    model.traverse((object) => {
+      if (object.isMesh) {
+        object.visible = true;
+        object.frustumCulled = false;
+      }
+    });
+
+    // Medir el modelo tal como viene de Blender
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+
+    box.getSize(size);
+    box.getCenter(center);
+
+    const maxDim = Math.max(size.x, size.y, size.z) || 1;
+    const scale = MODEL_TARGET_SIZE / maxDim;
+
+    // Centrar respecto a SU CENTRO (no a su origen de Blender)
+    model.position.sub(center);
+
+    // El grupo pivote es el que se escala, se mueve y gira
+    const root = new THREE.Group();
+    root.add(model);
+    root.scale.setScalar(scale);
+    root.position.set(0, MODEL_Y_OFFSET, 0);
+    root.rotation.y = -Math.PI / 2;
+
+    return root;
+  }
+
+  // Devuelve una Promise; si ya está en caché, resuelve al instante
+  function fetchModel(path) {
+
+    if (modelCache[path]) {
+      return Promise.resolve(modelCache[path]);
+    }
+
+    if (modelPending[path]) {
+      return modelPending[path];
+    }
+
+    modelPending[path] = new Promise((resolve, reject) => {
+
+      console.log('[Visor3D] Cargando ' + path + '...');
+
+      loader.load(
+        path,
+        (gltf) => {
+          const root = buildModelRoot(gltf);
+          modelCache[path] = root;
+          delete modelPending[path];
+          console.log('[Visor3D] modelo listo:', path);
+          resolve(root);
+        },
+        undefined,
+        (error) => {
+          delete modelPending[path];
+          reject(error);
+        }
+      );
+    });
+
+    return modelPending[path];
+  }
+
   function loadModel(path) {
 
     if (!path) {
       path = 'assets/pelota.glb';
     }
 
-    // Si ya es el modelo cargado, no hacer nada
-    if (path === currentModelPath && modelRoot) {
+    // Ya es el modelo solicitado (cargado o cargándose)
+    if (path === requestedPath) {
       return;
     }
 
-    console.log(
-      '[Visor3D] Cargando ' + path + '...'
-    );
+    requestedPath = path;
+    const myToken = ++loadToken;
 
-    loader.load(
+    // Ocultar el modelo anterior YA, para no mostrar uno equivocado
+    if (modelRoot) {
+      modelRoot.visible = false;
+    }
 
-      path,
+    fetchModel(path)
+      .then((root) => {
 
-            (gltf) => {
+        // Si mientras cargaba se pidió otro modelo, ignorar este
+        if (myToken !== loadToken) {
+          return;
+        }
 
         if (modelRoot) {
           scene.remove(modelRoot);
         }
 
-        const model = gltf.scene;
+        modelRoot = root;
+        modelRoot.visible = true;
+        modelRoot.rotation.y = -Math.PI / 2;
         currentModelPath = path;
 
-        console.log('[Visor3D] modelo .glb cargado correctamente:', path);
-
-        model.traverse((object) => {
-          if (object.isMesh) {
-            object.visible = true;
-            object.frustumCulled = false;
-          }
-        });
-
-        // Medir el modelo tal como viene de Blender
-        const box = new THREE.Box3().setFromObject(model);
-        const size = new THREE.Vector3();
-        const center = new THREE.Vector3();
-
-        box.getSize(size);
-        box.getCenter(center);
-
-        const maxDim = Math.max(size.x, size.y, size.z) || 1;
-        const scale = MODEL_TARGET_SIZE / maxDim;
-
-        // Centrar respecto a SU CENTRO (no a su origen de Blender)
-        model.position.sub(center);
-
-        // El grupo pivote es el que se escala, se mueve y gira
-        modelRoot = new THREE.Group();
-        modelRoot.add(model);
-        modelRoot.scale.setScalar(scale);
-        modelRoot.position.set(0, MODEL_Y_OFFSET, 0);
-        modelRoot.rotation.y = -Math.PI / 2;
-
         scene.add(modelRoot);
-
-        console.log('[Visor3D] modelo listo y centrado');
-
         resize();
-      },
+      })
+      .catch((error) => {
 
-      undefined,
-
-      (error) => {
+        if (myToken === loadToken) {
+          requestedPath = null;
+        }
 
         console.error(
           '[Visor3D] Error cargando modelo .glb:',
           path,
           error
         );
-
-      }
-    );
+      });
   }
 
-  // Carga el modelo por defecto al iniciar (antes de detectar un equipo)
-  loadModel('assets/pelota.glb');
+  // Precarga en segundo plano (de uno en uno para no saturar el celular)
+  async function preloadModels(paths) {
+    for (const p of paths) {
+      try {
+        await fetchModel(p);
+      } catch (e) {
+        console.warn('[Visor3D] No se pudo precargar', p);
+      }
+    }
+  }
 
 
   /* -------------------------------------------------------
@@ -696,7 +738,8 @@ function initModelViewer() {
   modelViewer = {
     canvas: canvas,
     resize: resize,
-    loadModel: loadModel
+    loadModel: loadModel,
+    preloadModels: preloadModels
   };
 
 
@@ -897,7 +940,7 @@ function renderTeamContent(teamId) {
   if (videoList) {
     videoList.innerHTML = '';
 
-      if (team && team.videos && team.videos.length) {
+    if (team && team.videos && team.videos.length) {
       renderVideoCards(videoList, team.videos);
     } else {
       videoList.innerHTML =
@@ -905,7 +948,7 @@ function renderTeamContent(teamId) {
     }
   }
 
-   /* ---------- Stats ---------- */
+  /* ---------- Stats ---------- */
 
   renderStats(teamId);
 
@@ -929,6 +972,8 @@ function renderTeamContent(teamId) {
 /* =========================================================
    EVENTOS MINDAR
    ========================================================= */
+
+let activeTargetIdx = null;   // logo que se está mostrando ahora
 
 window.addEventListener(
   'DOMContentLoaded',
@@ -956,6 +1001,8 @@ window.addEventListener(
       target.addEventListener(
         'targetFound',
         () => {
+
+          activeTargetIdx = idx;
 
           const teamId =
             (typeof TEAM_BY_TARGET_INDEX !== 'undefined')
@@ -987,6 +1034,10 @@ window.addEventListener(
       target.addEventListener(
         'targetLost',
         () => {
+
+          // Ignorar la pérdida de un logo que ya no es el activo
+          if (activeTargetIdx !== idx) return;
+          activeTargetIdx = null;
 
           console.log(
             '[MindAR] target perdido, índice:', idx
