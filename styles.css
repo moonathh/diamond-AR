@@ -624,3 +624,11 @@
   .gal-cap b{font-size:11px;}
   .gal-cap span{font-size:10px; opacity:.8;}
   .gal-del{z-index:3;}
+
+    /* Destello al capturar */
+  .ar-flash{
+    position:absolute; inset:0; background:#fff; opacity:.85;
+    pointer-events:none; z-index:1001;
+    animation:arflash .35s ease-out forwards;
+  }
+  @keyframes arflash{ to{ opacity:0; } }  

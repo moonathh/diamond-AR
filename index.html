@@ -45,7 +45,7 @@
     </div>
     <div class="section-title">Tu galería</div>
     <div class="grid-menu" style="grid-template-columns:1fr;">
-      <div class="menu-card" onclick="go('gallery')"><span class="ic">🖼️</span><div class="label">Galería guardada</div><div class="sub">0 capturas</div></div>
+      <div class="menu-card" onclick="go('gallery')"><span class="ic">🖼️</span><div class="label">Galería guardada</div><div class="sub" id="home-gallery-count">0 capturas</div></div>
     </div>
   </div>
 
@@ -87,27 +87,17 @@
     </div>
     <button class="btn-primary" id="ar-scan-btn" style="width:calc(100% - 40px); margin:0 20px 14px;" onclick="toggleAR()">ESCANEAR OBJETO</button>
 
-    <div class="filter-row">
-      <div class="filter-chip active" onclick="setARFilter(this,'')">Original</div>
-      <div class="filter-chip" onclick="setARFilter(this,'f-blur')">Desenfoque</div>
-      <div class="filter-chip" onclick="setARFilter(this,'f-pixel')">Pixelado</div>
-      <div class="filter-chip" onclick="setARFilter(this,'f-thermal')">Cámara térmica</div>
-      <div class="filter-chip" onclick="setARFilter(this,'f-thermal')">Ajuste de color</div>
-      <div class="filter-chip" onclick="setARFilter(this,'f-pastel')">Pastel</div>
-    </div>
-
        <div class="ar-controls">
       <button class="ar-btn" id="ar-anim-btn" onclick="toggleModelAnimation(this)">⏸️ Pausar</button>
       <button class="ar-btn" onclick="burstConfetti()">🎊 Confeti</button>
-      <button class="ar-btn">📸 Capturar</button>
-      <button class="ar-btn">🖼️ Ver galería</button>
+      <button class="ar-btn" onclick="captureAR()">📸 Capturar</button>
+      <button class="ar-btn" onclick="go('gallery')">🖼️ Ver galería</button>
     </div>
   </div>
 
   <!-- VIDEO -->
   <div class="screen" id="screen-video">
     <div class="topbar"><div><div class="eyebrow">Contenido</div><h1>Videos</h1></div><div class="badge" onclick="go('home')" style="cursor:pointer;">←</div></div>
-    <div class="filter-row">
       <div class="filter-chip active" onclick="setVFilter(this,'')">Original</div>
       <div class="filter-chip" onclick="setVFilter(this,'f-blur')">Desenfoque</div>
       <div class="filter-chip" onclick="setVFilter(this,'f-vivid')">Vívido</div>

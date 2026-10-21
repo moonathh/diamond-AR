@@ -459,22 +459,63 @@ function deleteGalleryItem(id) {
   renderGallery();
 }
 
+function buildPhotoCell(c) {
+  const team = (typeof TEAMS_DATA !== 'undefined' && c.teamId)
+    ? TEAMS_DATA[c.teamId]
+    : null;
+
+  const cell = document.createElement('div');
+  cell.className = 'gal-cell gal-photo';
+
+  cell.innerHTML =
+    '<img alt="Captura AR">' +
+    '<div class="gal-cap"><b></b><span>Captura AR</span></div>' +
+    '<a class="gal-dl" aria-label="Descargar">⬇</a>' +
+    '<button type="button" class="gal-del" aria-label="Eliminar">✕</button>';
+
+  cell.querySelector('img').src = c.dataUrl;
+  cell.querySelector('.gal-cap b').textContent = team ? team.corto : 'Captura';
+
+  const dl = cell.querySelector('.gal-dl');
+  dl.href = c.dataUrl;
+  dl.download = 'captura-' + (c.teamId || 'ar') + '.jpg';
+  dl.addEventListener('click', (ev) => ev.stopPropagation());
+
+  cell.querySelector('.gal-del').addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    deleteCapture(c.id);
+  });
+
+  return cell;
+}
+
 function renderGallery() {
   const grid = document.getElementById('gallery-grid');
   const empty = document.getElementById('gallery-empty');
+
+  // Capturas y videos juntos, lo más reciente primero
+  const entries = galleryItems
+    .map((g) => Object.assign({ kind: 'video' }, g))
+    .concat(captureItems.map((c) => Object.assign({ kind: 'photo' }, c)))
+    .sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')));
+
+  const homeCount = document.getElementById('home-gallery-count');
+  if (homeCount) {
+    homeCount.textContent = entries.length + (entries.length === 1 ? ' elemento' : ' elementos');
+  }
 
   if (!grid) return;
 
   grid.innerHTML = '';
 
   if (empty) {
-    empty.textContent = 'Aún no tienes videos guardados. Guárdalos desde la sección Video.';
-    empty.style.display = galleryItems.length ? 'none' : 'block';
+    empty.textContent = 'Aún no tienes capturas ni videos guardados.';
+    empty.style.display = entries.length ? 'none' : 'block';
   }
 
   // Dibuja el primer fotograma solo cuando la celda está cerca de verse
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach((e) => {
+  const io = new IntersectionObserver((evts) => {
+    evts.forEach((e) => {
       if (!e.isIntersecting) return;
       io.unobserve(e.target);
 
@@ -492,7 +533,13 @@ function renderGallery() {
     });
   }, { rootMargin: '200px' });
 
-  galleryItems.forEach((g) => {
+  entries.forEach((g) => {
+
+    if (g.kind === 'photo') {
+      grid.appendChild(buildPhotoCell(g));
+      return;
+    }
+
     const cell = document.createElement('div');
     cell.className = 'gal-cell gal-video';
     cell.dataset.src = g.src;
@@ -531,6 +578,168 @@ function renderGallery() {
     grid.appendChild(cell);
     io.observe(cell);
   });
+}
+
+
+/* =========================================================
+   CAPTURAS DEL MODELO AR (cámara + modelo 3D)
+   ========================================================= */
+
+const CAPTURES_KEY = 'diamondAR_captures';
+
+function loadCaptures() {
+  try {
+    const raw = localStorage.getItem(CAPTURES_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch (err) {
+    console.warn('[Capturas] No se pudo leer localStorage:', err);
+    return [];
+  }
+}
+
+let captureItems = loadCaptures();
+
+// Devuelve false si el almacenamiento está lleno
+function persistCaptures() {
+  try {
+    localStorage.setItem(CAPTURES_KEY, JSON.stringify(captureItems));
+    return true;
+  } catch (err) {
+    console.warn('[Capturas] No se pudo guardar en localStorage:', err);
+    return false;
+  }
+}
+
+function saveCaptureToGallery(dataUrl) {
+  captureItems.unshift({
+    id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+    teamId: currentTeamId || null,
+    dataUrl: dataUrl,
+    fecha: new Date().toISOString()
+  });
+
+  if (!persistCaptures()) {
+    captureItems.shift();   // deshacer: no cupo
+    return false;
+  }
+
+  renderGallery();
+  return true;
+}
+
+function deleteCapture(id) {
+  captureItems = captureItems.filter((c) => c.id !== id);
+  persistCaptures();
+  renderGallery();
+}
+
+// Muestra un aviso en la barra de estado del AR y luego lo restaura
+let arStatusTimer = null;
+
+function flashARStatus(msg, isError) {
+  const el = document.getElementById('ar-status');
+  if (!el) return;
+
+  if (!arStatusTimer) {
+    el._prev = {
+      text: el.textContent,
+      error: el.classList.contains('error'),
+      hidden: el.classList.contains('hidden')
+    };
+  }
+
+  setARStatus(msg, !!isError);
+
+  clearTimeout(arStatusTimer);
+  arStatusTimer = setTimeout(() => {
+    arStatusTimer = null;
+    const p = el._prev;
+    if (!p) return;
+
+    if (p.hidden) {
+      setARStatus('');
+    } else {
+      setARStatus(p.text, p.error);
+    }
+  }, 2500);
+}
+
+function captureAR() {
+
+  const container = document.getElementById('ar-viewfinder');
+  const video = container && container.querySelector('video');
+  const modelCanvas = document.getElementById('ar-model-canvas');
+
+  if (!arRunning || !video || !video.videoWidth) {
+    flashARStatus('Activa la cámara con "Escanear objeto" para capturar.', true);
+    return;
+  }
+
+  if (!modelCanvas || !modelCanvas.classList.contains('visible') || !currentTeamId) {
+    flashARStatus('Apunta la cámara a un logo para capturar el modelo.', true);
+    return;
+  }
+
+  // Tamaño de salida (máx. 720 px de ancho para no llenar el almacenamiento)
+  const rect = container.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  let outW = Math.round(rect.width * dpr);
+  let outH = Math.round(rect.height * dpr);
+
+  if (outW > 720) {
+    outH = Math.round(outH * 720 / outW);
+    outW = 720;
+  }
+
+  if (outW < 2 || outH < 2) return;
+
+  const out = document.createElement('canvas');
+  out.width = outW;
+  out.height = outH;
+
+  const ctx = out.getContext('2d');
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, outW, outH);
+
+  // 1) Cámara, recortada igual que se ve en pantalla (object-fit: cover)
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  const scale = Math.max(outW / vw, outH / vh);
+  const sw = outW / scale;
+  const sh = outH / scale;
+
+  ctx.drawImage(video, (vw - sw) / 2, (vh - sh) / 2, sw, sh, 0, 0, outW, outH);
+
+  // 2) Modelo 3D (se renderiza justo ahora para que el cuadro esté disponible)
+  if (modelViewer && modelViewer.renderFrame) {
+    modelViewer.renderFrame();
+  }
+
+  ctx.drawImage(modelCanvas, 0, 0, outW, outH);
+
+  // 3) Guardar
+  let dataUrl;
+
+  try {
+    dataUrl = out.toDataURL('image/jpeg', 0.85);
+  } catch (err) {
+    console.error('[Captura] No se pudo generar la imagen:', err);
+    flashARStatus('No se pudo generar la captura.', true);
+    return;
+  }
+
+  // Efecto de flash
+  const flash = document.createElement('div');
+  flash.className = 'ar-flash';
+  container.appendChild(flash);
+  setTimeout(() => flash.remove(), 400);
+
+  if (saveCaptureToGallery(dataUrl)) {
+    flashARStatus('📸 ¡Captura guardada en tu galería!');
+  } else {
+    flashARStatus('Almacenamiento lleno. Elimina capturas de la galería.', true);
+  }
 }
 
 
@@ -903,11 +1112,12 @@ function initModelViewer() {
      CREAR VIEWER
      ------------------------------------------------------- */
 
-  modelViewer = {
+    modelViewer = {
     canvas: canvas,
     resize: resize,
     loadModel: loadModel,
-    preloadModels: preloadModels
+    preloadModels: preloadModels,
+    renderFrame: function () { renderer.render(scene, camera); }
   };
 
 
