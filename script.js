@@ -905,7 +905,7 @@ function renderTeamContent(teamId) {
     }
   }
 
-  /* ----------   /* ---------- Stats ---------- */
+   /* ---------- Stats ---------- */
 
   renderStats(teamId);
 
