@@ -25,6 +25,10 @@ function go(name) {
     renderGame(currentTeamId);
   }
 
+  if (name === 'gallery') {
+    renderGallery();
+  }
+
     if (name === 'stats') {
     startStatsLive(currentTeamId);
   } else {
@@ -330,11 +334,13 @@ function renderVideoCards(container, videos) {
     });
   }, { rootMargin: '200px' });
 
-  videos.forEach((v) => {
+   videos.forEach((v) => {
     const card = document.createElement('div');
     card.className = 'video-card';
     card.dataset.filter = '';
     card._src = v.src;
+    card._titulo = v.titulo;
+    card._teamId = currentTeamId;
     card._playing = false;
     card._frame = null;
 
@@ -344,7 +350,10 @@ function renderVideoCards(container, videos) {
         '<canvas class="gif-canvas"></canvas>' +
         '<span class="play">▶</span>' +
       '</div>' +
-      '<div class="video-meta"><div class="t"></div></div>';
+      '<div class="video-meta">' +
+        '<div class="t"></div>' +
+        '<button type="button" class="video-save">💾 Guardar en galería</button>' +
+      '</div>';
 
     card.querySelector('.t').textContent = v.titulo;
     card._img = card.querySelector('.gif-live');
@@ -360,8 +369,167 @@ function renderVideoCards(container, videos) {
       updateVideoView(card);
     });
 
+    // Guardar en galería (con el filtro que tenga esta tarjeta)
+    const saveBtn = card.querySelector('.video-save');
+    saveBtn.addEventListener('click', (ev) => {
+      ev.stopPropagation();   // no reproducir/pausar el video
+
+      const result = saveVideoToGallery(card);
+
+      saveBtn.textContent = (result === 'saved')
+        ? '✓ Guardado en galería'
+        : 'Ya está en tu galería';
+      saveBtn.classList.add('done');
+
+      clearTimeout(saveBtn._t);
+      saveBtn._t = setTimeout(() => {
+        saveBtn.textContent = '💾 Guardar en galería';
+        saveBtn.classList.remove('done');
+      }, 1800);
+    });
+
     container.appendChild(card);
     io.observe(card);
+  });
+}
+
+/* =========================================================
+   GALERÍA DE VIDEOS GUARDADOS (con su filtro)
+   ========================================================= */
+
+const GALLERY_KEY = 'diamondAR_gallery';
+
+const FILTER_LABELS = {
+  '': 'Original',
+  'f-blur': 'Desenfoque',
+  'f-pixel': 'Pixelado',
+  'f-vivid': 'Vívido',
+  'f-thermal': 'Térmica',
+  'f-pastel': 'Pastel'
+};
+
+function loadGallery() {
+  try {
+    const raw = localStorage.getItem(GALLERY_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch (err) {
+    console.warn('[Galería] No se pudo leer localStorage:', err);
+    return [];
+  }
+}
+
+let galleryItems = loadGallery();
+
+function persistGallery() {
+  try {
+    localStorage.setItem(GALLERY_KEY, JSON.stringify(galleryItems));
+  } catch (err) {
+    console.warn('[Galería] No se pudo guardar en localStorage:', err);
+  }
+}
+
+// Devuelve 'saved' o 'duplicate' (mismo video con el mismo filtro)
+function saveVideoToGallery(card) {
+  const filter = card.dataset.filter || '';
+
+  const exists = galleryItems.some(
+    (g) => g.src === card._src && g.filter === filter
+  );
+
+  if (exists) return 'duplicate';
+
+  galleryItems.unshift({
+    id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+    teamId: card._teamId || null,
+    src: card._src,
+    titulo: card._titulo || 'Video',
+    filter: filter,
+    fecha: new Date().toISOString()
+  });
+
+  persistGallery();
+  renderGallery();
+  return 'saved';
+}
+
+function deleteGalleryItem(id) {
+  galleryItems = galleryItems.filter((g) => g.id !== id);
+  persistGallery();
+  renderGallery();
+}
+
+function renderGallery() {
+  const grid = document.getElementById('gallery-grid');
+  const empty = document.getElementById('gallery-empty');
+
+  if (!grid) return;
+
+  grid.innerHTML = '';
+
+  if (empty) {
+    empty.textContent = 'Aún no tienes videos guardados. Guárdalos desde la sección Video.';
+    empty.style.display = galleryItems.length ? 'none' : 'block';
+  }
+
+  // Dibuja el primer fotograma solo cuando la celda está cerca de verse
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      io.unobserve(e.target);
+
+      const cv = e.target.querySelector('canvas');
+      const poster = new Image();
+
+      poster.onload = () => {
+        const s = Math.min(1, 360 / poster.naturalWidth);
+        cv.width = Math.max(1, Math.round(poster.naturalWidth * s));
+        cv.height = Math.max(1, Math.round(poster.naturalHeight * s));
+        cv.getContext('2d').drawImage(poster, 0, 0, cv.width, cv.height);
+      };
+
+      poster.src = e.target.dataset.src;
+    });
+  }, { rootMargin: '200px' });
+
+  galleryItems.forEach((g) => {
+    const cell = document.createElement('div');
+    cell.className = 'gal-cell gal-video';
+    cell.dataset.src = g.src;
+
+    cell.innerHTML =
+      '<div class="gal-media"><img alt=""><canvas></canvas></div>' +
+      '<span class="gal-play">▶</span>' +
+      '<div class="gal-cap"><b></b><span></span></div>' +
+      '<button type="button" class="gal-del" aria-label="Eliminar">✕</button>';
+
+    // Mismo filtro CSS con el que se guardó
+    cell.querySelector('.gal-media').style.filter = filterCss(g.filter);
+
+    cell.querySelector('.gal-cap b').textContent = g.titulo || 'Video';
+    cell.querySelector('.gal-cap span').textContent =
+      FILTER_LABELS[g.filter] || 'Original';
+
+    const img = cell.querySelector('img');
+
+    // Tocar: reproducir / volver al primer fotograma
+    cell.addEventListener('click', () => {
+      const playing = cell.classList.toggle('playing');
+
+      if (playing) {
+        img.src = g.src;
+      } else {
+        img.removeAttribute('src');
+      }
+    });
+
+    cell.querySelector('.gal-del').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      deleteGalleryItem(g.id);
+    });
+
+    grid.appendChild(cell);
+    io.observe(cell);
   });
 }
 
@@ -1939,3 +2107,4 @@ function stopStatsLive() {
 
 // Inicializar los contadores de tickets visibles en pantalla
 updateTicketDisplays();
+renderGallery();
