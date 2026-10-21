@@ -484,27 +484,34 @@ const TEAM_HISTORY = {
 
 };
 
+function gifs(prefijo, total) {
+  const lista = [prefijo + '.gif'];
+  for (let i = 2; i <= total; i++) {
+    lista.push(prefijo + i + '.gif');
+  }
+  return lista;
+}
 /* =========================================================
    GIFS POR EQUIPO (4 por equipo)
    ========================================================= */
 
 const GIFS_POR_EQUIPO = {
-  dodgers:   { carpeta: 'LA',           archivos: ['gifLA.gif', 'gifLA2.gif', 'gifLA3.gif', 'gifLA4.gif'] },
-  braves:    { carpeta: 'Braves',       archivos: ['gifBR.gif', 'gifBR2.gif', 'gifBR3.gif', 'gifBR4.gif'] },
-  marlins:   { carpeta: 'Marlins',      archivos: ['gifMA.gif', 'gifMA2.gif', 'gifMA3.gif', 'gifMA4.gif'] },
-  mets:      { carpeta: 'Mets',         archivos: ['gifME.gif', 'gifME2.gif', 'gifME3.gif', 'gifME4.gif'] },
-  phillies:  { carpeta: 'Phillies',     archivos: ['gifPH.gif', 'gifPH2.gif', 'gifPH3.gif', 'gifPH4.gif'] },
-  nationals: { carpeta: 'Nationals',    archivos: ['gifNA.gif', 'gifNA2.gif', 'gifNA3.gif', 'gifNA4.gif'] },
-  cubs:      { carpeta: 'Cubs',         archivos: ['gifCU.gif', 'gifCU2.gif', 'gifCU3.gif', 'gifCU4.gif'] },
-  reds:      { carpeta: 'Reds',         archivos: ['gifRE.gif', 'gifRE2.gif', 'gifRE3.gif', 'gifRE4.gif'] },
-  brewers:   { carpeta: 'Brewers',      archivos: ['gifBRE.gif', 'gifBRE2.gif', 'gifBRE3.gif', 'gifBRE4.gif'] },
-  pirates:   { carpeta: 'Pirates',      archivos: ['gifPI.gif', 'gifPI2.gif', 'gifPI3.gif', 'gifPI4.gif'] },
-  cardinals: { carpeta: 'Cardinals',    archivos: ['gifCA.gif', 'gifCA2.gif', 'gifCA3.gif', 'gifCA4.gif'] },
-  dbacks:    { carpeta: 'Diamondbacks', archivos: ['gifDB.gif', 'gifDB2.gif', 'gifDB3.gif', 'gifDB4.gif'] },
-  rockies:   { carpeta: 'Rockies',      archivos: ['gifRO.gif', 'gifRO2.gif', 'gifRO3.gif', 'gifRO4.gif'] },
-  padres:    { carpeta: 'Padres',       archivos: ['gifsPAD.gif', 'gifsPAD2.gif', 'gifsPAD3.gif', 'gifsPAD4.gif'] },
-  giants:    { carpeta: 'Giants',       archivos: ['gifGIA.gif', 'gifGIA2.gif', 'gifGIA3.gif', 'gifGIA4.gif'] }
-};
+  dodgers:   { carpeta: 'LA',           archivos: gifs('gifLA', 8) },
+  braves:    { carpeta: 'Braves',       archivos: gifs('gifBR', 8) },
+  marlins:   { carpeta: 'Marlins',      archivos: gifs('gifMA', 8) },
+  mets:      { carpeta: 'Mets',         archivos: gifs('gifME', 8) },
+  phillies:  { carpeta: 'Phillies',     archivos: gifs('gifPH', 8) },
+  nationals: { carpeta: 'Nationals',    archivos: gifs('gifNA', 8) },
+  cubs:      { carpeta: 'Cubs',         archivos: gifs('gifCU', 8) },
+  reds:      { carpeta: 'Reds',         archivos: gifs('gifRE', 8) },
+  brewers:   { carpeta: 'Brewers',      archivos: gifs('gifBRE', 8) },
+  pirates:   { carpeta: 'Pirates',      archivos: gifs('gifPI', 8) },
+  cardinals: { carpeta: 'Cardinals',    archivos: gifs('gifCA', 8) },
+  dbacks:    { carpeta: 'Diamondbacks', archivos: gifs('gifDB', 8) },
+  rockies:   { carpeta: 'Rockies',      archivos: gifs('gifRO', 8) },
+  padres:    { carpeta: 'Padres',       archivos: gifs('gifsPAD', 8) },
+  giants:    { carpeta: 'Giants',       archivos: gifs('gifGIA', 8) }
+};;
 
 function buildVideos(t) {
   const g = GIFS_POR_EQUIPO[t.id];
